@@ -1,0 +1,16 @@
+# Config tools lokal
+.claude/
+.impeccable/
+
+# Sistem operasi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Rahasia
+.env
+.env.*
