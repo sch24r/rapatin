@@ -1,0 +1,882 @@
+import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../app.dart';
+import '../../core/format.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text.dart';
+import '../../data/dummy_data.dart';
+import '../../data/models.dart';
+import '../../widgets/cards.dart';
+import '../../widgets/common.dart';
+import '../../widgets/nav_bar.dart';
+
+/// Kerangka peran Penyewa: Beranda, Cari, Booking, Akun.
+class PenyewaShell extends StatefulWidget {
+  const PenyewaShell({super.key, this.initialTab = 0});
+  final int initialTab;
+
+  @override
+  State<PenyewaShell> createState() => _PenyewaShellState();
+}
+
+class _PenyewaShellState extends State<PenyewaShell> {
+  late int _tab = widget.initialTab;
+
+  void _go(int i) => setState(() => _tab = i);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          BerandaTab(onCari: () => _go(1), onBooking: () => _go(2)),
+          const CariTab(),
+          const BookingSayaTab(),
+          const AkunPenyewaTab(),
+        ],
+      ),
+      bottomNavigationBar: AppNavBar(
+        index: _tab,
+        onChanged: _go,
+        items: const [
+          NavItem(LucideIcons.house, 'Beranda'),
+          NavItem(LucideIcons.search, 'Cari'),
+          NavItem(LucideIcons.ticket, 'Booking'),
+          NavItem(LucideIcons.user, 'Akun'),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── 07 · Beranda ─────────────────────────
+
+class BerandaTab extends StatelessWidget {
+  const BerandaTab({super.key, required this.onCari, required this.onBooking});
+  final VoidCallback onCari;
+  final VoidCallback onBooking;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = bookingUtama;
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: Gap.x24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x8, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Halo, Alden',
+                        style: AppText.caption.copyWith(fontSize: 13),
+                      ),
+                      InkWell(
+                        borderRadius: Radii.smAll,
+                        onTap: () => showSoon(context, 'Ganti organisasi'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('BEM Fakultas Teknik', style: AppText.h2),
+                            const SizedBox(width: 4),
+                            const Icon(LucideIcons.chevronDown, size: 20),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CircleIconButton(
+                  icon: LucideIcons.bell,
+                  tooltip: 'Notifikasi',
+                  badge: true,
+                  onPressed: () =>
+                      Navigator.pushNamed(context, Routes.notifikasi),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Gap.x16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+            child: AppCard(
+              color: AppColors.primary,
+              borderColor: AppColors.primary,
+              onTap: () => Navigator.pushNamed(
+                context,
+                Routes.detailBooking,
+                arguments: b,
+              ),
+              child: Row(
+                children: [
+                  const IconBox(
+                    LucideIcons.ticket,
+                    bg: AppColors.accent,
+                    fg: AppColors.text,
+                  ),
+                  const SizedBox(width: Gap.x12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${b.venue.nama} · ${b.room.nama}',
+                          style: AppText.h3.tint(Colors.white),
+                        ),
+                        Text(
+                          'Berikutnya · ${tanggalPendek(b.tanggal)} · ${jam(b.jamMulai)}',
+                          style: AppText.caption
+                              .tint(AppColors.primarySoft)
+                              .copyWith(fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(LucideIcons.chevronRight, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: Gap.x16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+            child: _QuickSearchCard(onCari: onCari),
+          ),
+          const SizedBox(height: Gap.x24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+            child: SectionHeader(
+              title: 'Promo jam sepi',
+              action: 'Lihat semua',
+              onAction: onCari,
+            ),
+          ),
+          const SizedBox(height: Gap.x8),
+          SizedBox(
+            height: 262,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+              itemCount: semuaVenue.where((v) => v.promo != null).length,
+              separatorBuilder: (_, _) => const SizedBox(width: Gap.x12),
+              itemBuilder: (context, i) {
+                final v = semuaVenue.where((v) => v.promo != null).elementAt(i);
+                return VenueCard(
+                  venue: v,
+                  width: 260,
+                  photoHeight: 136,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.detailTempat,
+                    arguments: v,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: Gap.x24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: Gap.x16),
+            child: SectionHeader(title: 'Cocok untuk 25 orang'),
+          ),
+          const SizedBox(height: Gap.x8),
+          for (final v in [kingKong, warungSinar])
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.x16, 0, Gap.x16, Gap.x12),
+              child: VenueCard(
+                venue: v,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  Routes.detailTempat,
+                  arguments: v,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickSearchCard extends StatelessWidget {
+  const _QuickSearchCard({required this.onCari});
+  final VoidCallback onCari;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget field(IconData icon, String label, String value) => Material(
+      color: AppColors.surfaceMuted,
+      borderRadius: Radii.mdAll,
+      child: InkWell(
+        borderRadius: Radii.mdAll,
+        onTap: () => _showFilterSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.textMuted),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppText.caption.copyWith(fontSize: 13)),
+                    Text(
+                      value,
+                      style: AppText.bodyMedium.semi.copyWith(fontSize: 15),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Cari tempat rapat', style: AppText.h2),
+          const SizedBox(height: Gap.x12),
+          field(LucideIcons.users, 'Jumlah orang', '25 orang'),
+          const SizedBox(height: Gap.x8),
+          Row(
+            children: [
+              Expanded(
+                child: field(
+                  LucideIcons.calendar,
+                  'Tanggal',
+                  tanggalPendek(tanggalAcara),
+                ),
+              ),
+              const SizedBox(width: Gap.x8),
+              Expanded(child: field(LucideIcons.clock, 'Jam', '19.00–21.00')),
+            ],
+          ),
+          const SizedBox(height: Gap.x12),
+          FilledButton(onPressed: onCari, child: const Text('Cari tempat')),
+          const SizedBox(height: Gap.x12),
+          Text(
+            'Pencarian terakhir',
+            style: AppText.caption.copyWith(fontSize: 13),
+          ),
+          const SizedBox(height: Gap.x8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final s in const [
+                  '25 orang · Sab 19.00',
+                  '12 orang · Min 15.00',
+                  '40 orang · Jum 13.00',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: Gap.x8),
+                    child: ActionChip(
+                      onPressed: onCari,
+                      avatar: const Icon(
+                        LucideIcons.repeat,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(s, style: AppText.label),
+                      backgroundColor: AppColors.surfaceMuted,
+                      side: BorderSide.none,
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── 08 · Cari & hasil ─────────────────────────
+
+class CariTab extends StatefulWidget {
+  const CariTab({super.key});
+
+  @override
+  State<CariTab> createState() => _CariTabState();
+}
+
+class _CariTabState extends State<CariTab> {
+  final _q = TextEditingController();
+  String _chip = 'Semua';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
+
+  List<Venue> get _hasil {
+    final q = _q.text.trim().toLowerCase();
+    return semuaVenue.where((v) {
+      final cocokTeks =
+          q.isEmpty ||
+          v.nama.toLowerCase().contains(q) ||
+          v.area.toLowerCase().contains(q);
+      final cocokChip = switch (_chip) {
+        'Promo' => v.promo != null,
+        'Proyektor' => v.fasilitas.contains(Fasilitas.proyektor),
+        'Ruang privat' => v.fasilitas.contains(Fasilitas.privat),
+        _ => true,
+      };
+      return cocokTeks && cocokChip;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasil = _hasil;
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _q,
+                    onChanged: (_) => setState(() {}),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Cari kafe, resto, atau area',
+                      prefixIcon: const Icon(LucideIcons.search, size: 20),
+                      fillColor: AppColors.surfaceMuted,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: Radii.mdAll,
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: _q.text.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Hapus',
+                              icon: const Icon(LucideIcons.x, size: 18),
+                              onPressed: () => setState(_q.clear),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Gap.x8),
+                IconButton.filled(
+                  tooltip: 'Filter',
+                  onPressed: () => _showFilterSheet(context),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    minimumSize: const Size(52, 52),
+                    shape: RoundedRectangleBorder(borderRadius: Radii.mdAll),
+                  ),
+                  icon: const Icon(LucideIcons.slidersHorizontal, size: 20),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Gap.x12),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+              children: [
+                for (final c in const [
+                  'Semua',
+                  'Promo',
+                  'Proyektor',
+                  'Ruang privat',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: Gap.x8),
+                    child: PillChip(
+                      label: c,
+                      selected: _chip == c,
+                      onTap: () => setState(() => _chip = c),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Gap.x16,
+              Gap.x16,
+              Gap.x16,
+              Gap.x8,
+            ),
+            child: Text(
+              '${hasil.length} tempat · 25 orang · ${tanggalPendek(tanggalAcara)} · 19.00–21.00',
+              style: AppText.caption.copyWith(fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: hasil.isEmpty
+                ? SingleChildScrollView(
+                    child: EmptyState(
+                      icon: LucideIcons.searchX,
+                      title: 'Belum ada tempat yang cocok',
+                      message: 'Coba kurangi jumlah orang, geser jamnya, atau hapus beberapa filter.',
+                      action: 'Hapus semua filter',
+                      onAction: () => setState(() {
+                        _q.clear();
+                        _chip = 'Semua';
+                      }),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                      Gap.x16,
+                      0,
+                      Gap.x16,
+                      Gap.x24,
+                    ),
+                    itemCount: hasil.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: Gap.x12),
+                    itemBuilder: (context, i) => VenueCard(
+                      venue: hasil[i],
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        Routes.detailTempat,
+                        arguments: hasil[i],
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── 09 · Filter sheet ─────────────────────────
+
+void _showFilterSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => const _FilterSheet(),
+  );
+}
+
+class _FilterSheet extends StatefulWidget {
+  const _FilterSheet();
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  int _orang = 25;
+  String _jam = 'Malam';
+  RangeValues _budget = const RangeValues(20000, 40000);
+  final _fasilitas = <Fasilitas>{Fasilitas.proyektor, Fasilitas.colokan};
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x16),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Filter', style: AppText.h1),
+            const SizedBox(height: Gap.x20),
+            Row(
+              children: [
+                Expanded(child: Text('Jumlah orang', style: AppText.h3)),
+                QtyStepper(
+                  value: _orang,
+                  onChanged: (v) => setState(() => _orang = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: Gap.x20),
+            Text('Tanggal', style: AppText.h3),
+            const SizedBox(height: Gap.x8),
+            LabeledField(
+              label: '',
+              initialValue: tanggalPendek(tanggalAcara),
+              icon: LucideIcons.calendar,
+              readOnly: true,
+            ),
+            const SizedBox(height: Gap.x20),
+            Text('Jam', style: AppText.h3),
+            const SizedBox(height: Gap.x8),
+            Wrap(
+              spacing: Gap.x8,
+              runSpacing: Gap.x8,
+              children: [
+                for (final j in const [
+                  'Pagi',
+                  'Siang',
+                  'Sore · promo',
+                  'Malam',
+                ])
+                  PillChip(
+                    label: j,
+                    selected: _jam == j,
+                    onTap: () => setState(() => _jam = j),
+                  ),
+              ],
+            ),
+            const SizedBox(height: Gap.x20),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Min. order per orang', style: AppText.h3),
+                ),
+                Text(
+                  '${rupiahShort(_budget.start.round())}–${rupiahShort(_budget.end.round())}',
+                  style: AppText.bodyMedium.semi.tint(AppColors.primary),
+                ),
+              ],
+            ),
+            RangeSlider(
+              values: _budget,
+              min: 10000,
+              max: 60000,
+              divisions: 10,
+              activeColor: AppColors.primary,
+              inactiveColor: AppColors.primarySoft,
+              onChanged: (v) => setState(() => _budget = v),
+            ),
+            const SizedBox(height: Gap.x12),
+            Text('Fasilitas', style: AppText.h3),
+            const SizedBox(height: Gap.x8),
+            Wrap(
+              spacing: Gap.x8,
+              runSpacing: Gap.x8,
+              children: [
+                for (final f in Fasilitas.values)
+                  PillChip(
+                    label: f.label,
+                    icon: FacilityChip.iconOf(f),
+                    selected: _fasilitas.contains(f),
+                    onTap: () => setState(
+                      () => _fasilitas.contains(f)
+                          ? _fasilitas.remove(f)
+                          : _fasilitas.add(f),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: Gap.x24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(() {
+                      _orang = 25;
+                      _jam = 'Malam';
+                      _budget = const RangeValues(10000, 60000);
+                      _fasilitas.clear();
+                    }),
+                    child: const Text('Reset'),
+                  ),
+                ),
+                const SizedBox(width: Gap.x12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Tampilkan 4 tempat'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── 19 · Booking saya ─────────────────────────
+
+class BookingSayaTab extends StatefulWidget {
+  const BookingSayaTab({super.key});
+
+  @override
+  State<BookingSayaTab> createState() => _BookingSayaTabState();
+}
+
+class _BookingSayaTabState extends State<BookingSayaTab> {
+  int _seg = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final list = _seg == 0 ? bookingPenyewa : riwayatPenyewa;
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, Gap.x24),
+        children: [
+          Text('Booking saya', style: AppText.h1),
+          const SizedBox(height: Gap.x16),
+          SegmentedButton<int>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: 0, label: Text('Aktif')),
+              ButtonSegment(value: 1, label: Text('Riwayat')),
+            ],
+            selected: {_seg},
+            onSelectionChanged: (s) => setState(() => _seg = s.first),
+            style: SegmentedButton.styleFrom(
+              selectedBackgroundColor: AppColors.primary,
+              selectedForegroundColor: Colors.white,
+              backgroundColor: AppColors.card,
+              side: const BorderSide(color: AppColors.border),
+              textStyle: AppText.bodyMedium,
+              minimumSize: const Size.fromHeight(44),
+            ),
+          ),
+          const SizedBox(height: Gap.x16),
+          if (list.isEmpty)
+            EmptyState(
+              icon: LucideIcons.ticket,
+              title: 'Belum ada booking',
+              message: 'Cari tempat rapat untuk panitiamu, slipnya akan muncul di sini.',
+              action: 'Cari tempat',
+              onAction: () {},
+            ),
+          for (final b in list) ...[
+            BookingCard(
+              booking: b,
+              onTap: () => Navigator.pushNamed(
+                context,
+                Routes.detailBooking,
+                arguments: b,
+              ),
+              action: _seg == 1
+                  ? Row(
+                      children: [
+                        if (b.status == BookingStatus.selesai) ...[
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(44),
+                              ),
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                Routes.rating,
+                                arguments: b,
+                              ),
+                              icon: const Icon(LucideIcons.star, size: 18),
+                              label: const Text('Beri rating'),
+                            ),
+                          ),
+                          const SizedBox(width: Gap.x8),
+                        ],
+                        Expanded(
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(44),
+                            ),
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              Routes.pilihSlot,
+                              arguments: b.venue,
+                            ),
+                            icon: const Icon(LucideIcons.repeat, size: 18),
+                            label: const Text('Booking lagi'),
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
+            ),
+            const SizedBox(height: Gap.x12),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── 20 · Akun ─────────────────────────
+
+class AkunPenyewaTab extends StatelessWidget {
+  const AkunPenyewaTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, Gap.x24),
+        children: [
+          Text('Akun', style: AppText.h1),
+          const SizedBox(height: Gap.x16),
+          AppCard(
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.primarySoft,
+                  child: Text(
+                    'AL',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Gap.x16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Alden Pratama', style: AppText.h3),
+                      Text(
+                        'alden@student.its.ac.id',
+                        style: AppText.caption.copyWith(fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Penyewa · ITS',
+                        style: AppText.label.tint(AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Gap.x16),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                MenuTile(
+                  icon: LucideIcons.pencil,
+                  title: 'Edit profil',
+                  onTap: () => showSoon(context, 'Edit profil'),
+                ),
+                MenuTile(
+                  icon: LucideIcons.building2,
+                  title: 'Organisasi',
+                  subtitle: 'BEM Fakultas Teknik · Sekretaris',
+                  onTap: () =>
+                      Navigator.pushNamed(context, Routes.profilOrganisasi),
+                ),
+                MenuTile(
+                  icon: LucideIcons.bell,
+                  title: 'Notifikasi',
+                  onTap: () => Navigator.pushNamed(context, Routes.notifikasi),
+                ),
+                MenuTile(
+                  icon: LucideIcons.fileText,
+                  title: 'Kebijakan pembatalan & refund',
+                  onTap: () => _kebijakan(context),
+                ),
+                MenuTile(
+                  icon: LucideIcons.messageCircle,
+                  title: 'Bantuan',
+                  subtitle: 'Chat admin Rapatin',
+                  onTap: () => showSoon(context, 'Bantuan'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Gap.x16),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: MenuTile(
+              icon: LucideIcons.logOut,
+              title: 'Keluar',
+              danger: true,
+              onTap: () => konfirmasiKeluar(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _kebijakan(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pembatalan & refund', style: AppText.h2),
+            const SizedBox(height: Gap.x12),
+            for (final t in const [
+              'Pembayaran penuh lewat QRIS Rapatin, lalu diverifikasi admin.',
+              'Masa pembatalan 2×24 jam sejak lunas, paling lambat 24 jam sebelum acara.',
+              'Batal dalam masa itu: dana kembali penuh, kecuali biaya layanan Rp3.000.',
+              'Lewat masa itu, booking menjadi final dan dana diteruskan ke mitra.',
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: Gap.x8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 3),
+                      child: Icon(
+                        LucideIcons.check,
+                        size: 16,
+                        color: AppColors.success,
+                      ),
+                    ),
+                    const SizedBox(width: Gap.x8),
+                    Expanded(child: Text(t, style: AppText.body)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> konfirmasiKeluar(BuildContext context) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      backgroundColor: AppColors.card,
+      title: Text('Keluar dari Rapatin?', style: AppText.h2),
+      content: Text(
+        'Kamu perlu masuk lagi untuk melihat booking.',
+        style: AppText.body.muted,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(c, false),
+          child: const Text('Batal'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(c, true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+          child: const Text('Keluar'),
+        ),
+      ],
+    ),
+  );
+  if (ok == true && context.mounted) {
+    Navigator.pushNamedAndRemoveUntil(context, Routes.peran, (_) => false);
+  }
+}
