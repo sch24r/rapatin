@@ -168,10 +168,15 @@ class BerandaTab extends StatelessWidget {
           ),
           const SizedBox(height: Gap.x8),
           SizedBox(
-            height: 262,
+            height: 272,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x16,
+                0,
+                Gap.x16,
+                Gap.x8,
+              ),
               itemCount: semuaVenue.where((v) => v.promo != null).length,
               separatorBuilder: (_, _) => const SizedBox(width: Gap.x12),
               itemBuilder: (context, i) {
@@ -189,7 +194,7 @@ class BerandaTab extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: Gap.x24),
+          const SizedBox(height: Gap.x20),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: Gap.x16),
             child: SectionHeader(title: 'Cocok untuk 25 orang'),
@@ -282,6 +287,7 @@ class _QuickSearchCard extends StatelessWidget {
           const SizedBox(height: Gap.x8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: Gap.x8),
             child: Row(
               children: [
                 for (final s in const [
