@@ -519,13 +519,13 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x16),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.85,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x12),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Filter', style: AppText.h1),
@@ -537,113 +537,144 @@ class _FilterSheetState extends State<_FilterSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: Gap.x16),
-            Row(
-              children: [
-                Expanded(child: Text('Jumlah orang', style: AppText.h3)),
-                QtyStepper(
-                  value: _orang,
-                  suffix: '',
-                  onChanged: (v) => setState(() => _orang = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: Gap.x20),
-            Text('Tanggal', style: AppText.h3),
-            const SizedBox(height: Gap.x8),
-            LabeledField(
-              label: '',
-              initialValue: tanggalPendek(tanggalAcara),
-              icon: LucideIcons.calendar,
-              readOnly: true,
-            ),
-            const SizedBox(height: Gap.x20),
-            Text('Jam', style: AppText.h3),
-            const SizedBox(height: Gap.x8),
-            Wrap(
-              spacing: Gap.x8,
-              runSpacing: Gap.x8,
-              children: [
-                for (final j in const [
-                  'Pagi',
-                  'Siang',
-                  'Sore · promo',
-                  'Malam',
-                ])
-                  PillChip(
-                    label: j,
-                    selected: _jam == j,
-                    onTap: () => setState(() => _jam = j),
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x20,
+                Gap.x16,
+                Gap.x20,
+                Gap.x20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text('Jumlah orang', style: AppText.h3)),
+                      QtyStepper(
+                        value: _orang,
+                        suffix: '',
+                        onChanged: (v) => setState(() => _orang = v),
+                      ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: Gap.x20),
+                  Text('Tanggal', style: AppText.h3),
+                  const SizedBox(height: Gap.x8),
+                  LabeledField(
+                    label: '',
+                    initialValue: tanggalPendek(tanggalAcara),
+                    icon: LucideIcons.calendar,
+                    readOnly: true,
+                  ),
+                  const SizedBox(height: Gap.x20),
+                  Text('Jam', style: AppText.h3),
+                  const SizedBox(height: Gap.x8),
+                  Wrap(
+                    spacing: Gap.x8,
+                    runSpacing: Gap.x8,
+                    children: [
+                      for (final j in const [
+                        'Pagi',
+                        'Siang',
+                        'Sore · promo',
+                        'Malam',
+                      ])
+                        PillChip(
+                          label: j,
+                          selected: _jam == j,
+                          onTap: () => setState(() => _jam = j),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: Gap.x20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Min. order per orang', style: AppText.h3),
+                      ),
+                      Text(
+                        '${rupiahShort(_budget.start.round())}–${rupiahShort(_budget.end.round())}',
+                        style: AppText.bodyMedium.semi.tint(AppColors.primary),
+                      ),
+                    ],
+                  ),
+                  RangeSlider(
+                    values: _budget,
+                    min: 10000,
+                    max: 60000,
+                    divisions: 10,
+                    activeColor: AppColors.primary,
+                    inactiveColor: AppColors.primarySoft,
+                    onChanged: (v) => setState(() => _budget = v),
+                  ),
+                  const SizedBox(height: Gap.x12),
+                  Text('Fasilitas', style: AppText.h3),
+                  const SizedBox(height: Gap.x8),
+                  Wrap(
+                    spacing: Gap.x8,
+                    runSpacing: Gap.x8,
+                    children: [
+                      for (final f in Fasilitas.values)
+                        PillChip(
+                          label: f.label,
+                          icon: FacilityChip.iconOf(f),
+                          selected: _fasilitas.contains(f),
+                          onTap: () => setState(
+                            () => _fasilitas.contains(f)
+                                ? _fasilitas.remove(f)
+                                : _fasilitas.add(f),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: Gap.x20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Min. order per orang', style: AppText.h3),
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              color: AppColors.bg,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Gap.x20,
+                  Gap.x12,
+                  Gap.x20,
+                  Gap.x16,
                 ),
-                Text(
-                  '${rupiahShort(_budget.start.round())}–${rupiahShort(_budget.end.round())}',
-                  style: AppText.bodyMedium.semi.tint(AppColors.primary),
-                ),
-              ],
-            ),
-            RangeSlider(
-              values: _budget,
-              min: 10000,
-              max: 60000,
-              divisions: 10,
-              activeColor: AppColors.primary,
-              inactiveColor: AppColors.primarySoft,
-              onChanged: (v) => setState(() => _budget = v),
-            ),
-            const SizedBox(height: Gap.x12),
-            Text('Fasilitas', style: AppText.h3),
-            const SizedBox(height: Gap.x8),
-            Wrap(
-              spacing: Gap.x8,
-              runSpacing: Gap.x8,
-              children: [
-                for (final f in Fasilitas.values)
-                  PillChip(
-                    label: f.label,
-                    icon: FacilityChip.iconOf(f),
-                    selected: _fasilitas.contains(f),
-                    onTap: () => setState(
-                      () => _fasilitas.contains(f)
-                          ? _fasilitas.remove(f)
-                          : _fasilitas.add(f),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setState(() {
+                          _orang = 25;
+                          _jam = 'Malam';
+                          _budget = const RangeValues(10000, 60000);
+                          _fasilitas.clear();
+                        }),
+                        child: const Text('Reset'),
+                      ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: Gap.x24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => setState(() {
-                      _orang = 25;
-                      _jam = 'Malam';
-                      _budget = const RangeValues(10000, 60000);
-                      _fasilitas.clear();
-                    }),
-                    child: const Text('Reset'),
-                  ),
+                    const SizedBox(width: Gap.x12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tampilkan 4 tempat'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: Gap.x12),
-                Expanded(
-                  flex: 2,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Tampilkan 4 tempat'),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
