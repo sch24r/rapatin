@@ -27,25 +27,33 @@ class _PenyewaShellState extends State<PenyewaShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          BerandaTab(onCari: () => _go(1), onBooking: () => _go(2)),
-          const CariTab(),
-          const BookingSayaTab(),
-          const AkunPenyewaTab(),
-        ],
-      ),
-      bottomNavigationBar: AppNavBar(
-        index: _tab,
-        onChanged: _go,
-        items: const [
-          NavItem(LucideIcons.house, 'Beranda'),
-          NavItem(LucideIcons.search, 'Cari'),
-          NavItem(LucideIcons.ticket, 'Booking'),
-          NavItem(LucideIcons.user, 'Akun'),
-        ],
+    return PopScope(
+      canPop: _tab == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _tab != 0) {
+          _go(0);
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _tab,
+          children: [
+            BerandaTab(onCari: () => _go(1), onBooking: () => _go(2)),
+            CariTab(onBack: () => _go(0)),
+            BookingSayaTab(onBack: () => _go(0)),
+            AkunPenyewaTab(onBack: () => _go(0)),
+          ],
+        ),
+        bottomNavigationBar: AppNavBar(
+          index: _tab,
+          onChanged: _go,
+          items: const [
+            NavItem(LucideIcons.house, 'Beranda'),
+            NavItem(LucideIcons.search, 'Cari'),
+            NavItem(LucideIcons.ticket, 'Booking'),
+            NavItem(LucideIcons.user, 'Akun'),
+          ],
+        ),
       ),
     );
   }
@@ -308,7 +316,8 @@ class _QuickSearchCard extends StatelessWidget {
 // ───────────────────────── 08 · Cari & hasil ─────────────────────────
 
 class CariTab extends StatefulWidget {
-  const CariTab({super.key});
+  const CariTab({super.key, this.onBack});
+  final VoidCallback? onBack;
 
   @override
   State<CariTab> createState() => _CariTabState();
@@ -353,6 +362,14 @@ class _CariTabState extends State<CariTab> {
             padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, 0),
             child: Row(
               children: [
+                if (widget.onBack != null) ...[
+                  CircleIconButton(
+                    icon: LucideIcons.chevronLeft,
+                    tooltip: 'Kembali ke Beranda',
+                    onPressed: widget.onBack,
+                  ),
+                  const SizedBox(width: Gap.x8),
+                ],
                 Expanded(
                   child: TextField(
                     controller: _q,
@@ -392,10 +409,15 @@ class _CariTabState extends State<CariTab> {
           ),
           const SizedBox(height: Gap.x12),
           SizedBox(
-            height: 40,
+            height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x16,
+                0,
+                Gap.x16,
+                Gap.x8,
+              ),
               children: [
                 for (final c in const [
                   'Semua',
@@ -417,7 +439,7 @@ class _CariTabState extends State<CariTab> {
           Padding(
             padding: const EdgeInsets.fromLTRB(
               Gap.x16,
-              Gap.x16,
+              Gap.x12,
               Gap.x16,
               Gap.x8,
             ),
@@ -497,13 +519,25 @@ class _FilterSheetState extends State<_FilterSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Filter', style: AppText.h1),
-            const SizedBox(height: Gap.x20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Filter', style: AppText.h1),
+                CircleIconButton(
+                  icon: LucideIcons.x,
+                  size: 38,
+                  tooltip: 'Tutup',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: Gap.x16),
             Row(
               children: [
                 Expanded(child: Text('Jumlah orang', style: AppText.h3)),
                 QtyStepper(
                   value: _orang,
+                  suffix: '',
                   onChanged: (v) => setState(() => _orang = v),
                 ),
               ],
@@ -612,7 +646,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 // ───────────────────────── 19 · Booking saya ─────────────────────────
 
 class BookingSayaTab extends StatefulWidget {
-  const BookingSayaTab({super.key});
+  const BookingSayaTab({super.key, this.onBack});
+  final VoidCallback? onBack;
 
   @override
   State<BookingSayaTab> createState() => _BookingSayaTabState();
@@ -629,7 +664,19 @@ class _BookingSayaTabState extends State<BookingSayaTab> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, Gap.x24),
         children: [
-          Text('Booking saya', style: AppText.h1),
+          Row(
+            children: [
+              if (widget.onBack != null) ...[
+                CircleIconButton(
+                  icon: LucideIcons.chevronLeft,
+                  tooltip: 'Kembali ke Beranda',
+                  onPressed: widget.onBack,
+                ),
+                const SizedBox(width: Gap.x8),
+              ],
+              Text('Booking saya', style: AppText.h1),
+            ],
+          ),
           const SizedBox(height: Gap.x16),
           SegmentedButton<int>(
             showSelectedIcon: false,
@@ -714,7 +761,8 @@ class _BookingSayaTabState extends State<BookingSayaTab> {
 // ───────────────────────── 20 · Akun ─────────────────────────
 
 class AkunPenyewaTab extends StatelessWidget {
-  const AkunPenyewaTab({super.key});
+  const AkunPenyewaTab({super.key, this.onBack});
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -723,7 +771,19 @@ class AkunPenyewaTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(Gap.x16, Gap.x16, Gap.x16, Gap.x24),
         children: [
-          Text('Akun', style: AppText.h1),
+          Row(
+            children: [
+              if (onBack != null) ...[
+                CircleIconButton(
+                  icon: LucideIcons.chevronLeft,
+                  tooltip: 'Kembali ke Beranda',
+                  onPressed: onBack,
+                ),
+                const SizedBox(width: Gap.x8),
+              ],
+              Text('Akun', style: AppText.h1),
+            ],
+          ),
           const SizedBox(height: Gap.x16),
           AppCard(
             child: Row(
@@ -814,13 +874,25 @@ class AkunPenyewaTab extends StatelessWidget {
   void _kebijakan(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pembatalan & refund', style: AppText.h2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Pembatalan & refund', style: AppText.h2),
+                CircleIconButton(
+                  icon: LucideIcons.x,
+                  size: 38,
+                  tooltip: 'Tutup',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
             const SizedBox(height: Gap.x12),
             for (final t in const [
               'Pembayaran penuh lewat QRIS Rapatin, lalu diverifikasi admin.',
@@ -846,6 +918,14 @@ class AkunPenyewaTab extends StatelessWidget {
                   ],
                 ),
               ),
+            const SizedBox(height: Gap.x16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup'),
+              ),
+            ),
           ],
         ),
       ),

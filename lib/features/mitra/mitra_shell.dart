@@ -38,27 +38,35 @@ class _MitraShellState extends State<MitraShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          MitraBerandaTab(onBooking: () => setState(() => _tab = 1)),
-          const BookingMasukTab(),
-          const JadwalTab(),
-          const KelolaTempatTab(),
-          const AkunMitraTab(),
-        ],
-      ),
-      bottomNavigationBar: AppNavBar(
-        index: _tab,
-        onChanged: (i) => setState(() => _tab = i),
-        items: const [
-          NavItem(LucideIcons.house, 'Beranda'),
-          NavItem(LucideIcons.ticket, 'Booking'),
-          NavItem(LucideIcons.calendar, 'Jadwal'),
-          NavItem(LucideIcons.store, 'Tempat'),
-          NavItem(LucideIcons.user, 'Akun'),
-        ],
+    return PopScope(
+      canPop: _tab == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _tab != 0) {
+          setState(() => _tab = 0);
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _tab,
+          children: [
+            MitraBerandaTab(onBooking: () => setState(() => _tab = 1)),
+            const BookingMasukTab(),
+            const JadwalTab(),
+            const KelolaTempatTab(),
+            const AkunMitraTab(),
+          ],
+        ),
+        bottomNavigationBar: AppNavBar(
+          index: _tab,
+          onChanged: (i) => setState(() => _tab = i),
+          items: const [
+            NavItem(LucideIcons.house, 'Beranda'),
+            NavItem(LucideIcons.ticket, 'Booking'),
+            NavItem(LucideIcons.calendar, 'Jadwal'),
+            NavItem(LucideIcons.store, 'Tempat'),
+            NavItem(LucideIcons.user, 'Akun'),
+          ],
+        ),
       ),
     );
   }
