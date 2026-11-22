@@ -156,16 +156,17 @@ class _DetailTempatScreenState extends State<DetailTempatScreen> {
                   Text('Menu & paket', style: AppText.h2),
                   const SizedBox(height: Gap.x12),
                   SizedBox(
-                    height: 214,
+                    height: 224,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(0, 0, 0, Gap.x8),
                       itemCount: v.menu.length,
                       separatorBuilder: (_, _) =>
                           const SizedBox(width: Gap.x12),
                       itemBuilder: (_, i) => MenuCard(menu: v.menu[i]),
                     ),
                   ),
-                  const SizedBox(height: Gap.x24),
+                  const SizedBox(height: Gap.x20),
                   Text('Ketentuan', style: AppText.h2),
                   const SizedBox(height: Gap.x12),
                   AppCard(

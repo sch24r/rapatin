@@ -195,10 +195,15 @@ class _BookingMasukTabState extends State<BookingMasukTab> {
               ),
               const SizedBox(height: Gap.x16),
               SizedBox(
-                height: 40,
+                height: 48,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+                  padding: const EdgeInsets.fromLTRB(
+                    Gap.x16,
+                    0,
+                    Gap.x16,
+                    Gap.x8,
+                  ),
                   children: [
                     for (var i = 0; i < _filters.length; i++)
                       Padding(
@@ -213,7 +218,7 @@ class _BookingMasukTabState extends State<BookingMasukTab> {
                   ],
                 ),
               ),
-              const SizedBox(height: Gap.x16),
+              const SizedBox(height: Gap.x12),
               if (list.isEmpty)
                 const EmptyState(
                   icon: LucideIcons.inbox,
@@ -559,10 +564,15 @@ class _JadwalTabState extends State<JadwalTab> {
           ),
           const SizedBox(height: Gap.x16),
           SizedBox(
-            height: 72,
+            height: 82,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x16,
+                0,
+                Gap.x16,
+                Gap.x8,
+              ),
               itemCount: hari.length,
               separatorBuilder: (_, _) => const SizedBox(width: Gap.x8),
               itemBuilder: (_, i) {

@@ -111,9 +111,10 @@ class MitraDataTempatScreen extends StatelessWidget {
           Text('Foto tempat', style: AppText.bodyMedium),
           const SizedBox(height: Gap.x8),
           SizedBox(
-            height: 84,
+            height: 94,
             child: ListView(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: Gap.x8),
               children: [
                 for (final f in const [
                   'assets/images/resto_vip.jpg',

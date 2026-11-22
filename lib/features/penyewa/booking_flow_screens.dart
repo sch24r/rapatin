@@ -83,6 +83,7 @@ class _PilihSlotScreenState extends State<PilihSlotScreen> {
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: Gap.x8),
             child: Row(
               children: [
                 for (var i = 0; i < v.rooms.length; i++)
@@ -102,7 +103,7 @@ class _PilihSlotScreenState extends State<PilihSlotScreen> {
               ],
             ),
           ),
-          const SizedBox(height: Gap.x16),
+          const SizedBox(height: Gap.x12),
           _Kalender(
             selected: _tanggal,
             onSelect: (d) => setState(() => _tanggal = d),
