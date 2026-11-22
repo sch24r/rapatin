@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
@@ -48,6 +50,31 @@ abstract final class Routes {
   static const mitraLaporan = '/mitra/laporan';
 }
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.trackpad,
+      };
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return Scrollbar(
+      controller: details.controller,
+      thumbVisibility: true,
+      child: child,
+    );
+  }
+}
+
 class RapatinApp extends StatelessWidget {
   const RapatinApp({super.key});
 
@@ -57,6 +84,7 @@ class RapatinApp extends StatelessWidget {
       title: 'Rapatin',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      scrollBehavior: const AppScrollBehavior(),
       initialRoute: Routes.splash,
       onGenerateRoute: _route,
     );

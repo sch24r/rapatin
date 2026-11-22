@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../app.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../data/models.dart';
@@ -59,13 +61,25 @@ class CircleIconButton extends StatelessWidget {
 }
 
 class AppBackButton extends StatelessWidget {
-  const AppBackButton({super.key});
+  const AppBackButton({super.key, this.fallbackRoute, this.onPressed});
+
+  final String? fallbackRoute;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => CircleIconButton(
     icon: LucideIcons.chevronLeft,
     tooltip: 'Kembali',
-    onPressed: () => Navigator.of(context).maybePop(),
+    onPressed: () async {
+      if (onPressed != null) {
+        onPressed!();
+        return;
+      }
+      final popped = await Navigator.of(context).maybePop();
+      if (!popped && context.mounted) {
+        Navigator.of(context).pushReplacementNamed(fallbackRoute ?? Routes.penyewa);
+      }
+    },
   );
 }
 
@@ -76,11 +90,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.actions,
     this.showBack = true,
+    this.fallbackRoute,
+    this.onBack,
   });
 
   final String title;
   final List<Widget>? actions;
   final bool showBack;
+  final String? fallbackRoute;
+  final VoidCallback? onBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(72);
@@ -92,9 +110,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leadingWidth: 72,
       leading: showBack
-          ? const Padding(
-              padding: EdgeInsets.only(left: Gap.x12),
-              child: AppBackButton(),
+          ? Padding(
+              padding: const EdgeInsets.only(left: Gap.x12),
+              child: AppBackButton(
+                fallbackRoute: fallbackRoute,
+                onPressed: onBack,
+              ),
             )
           : null,
       title: Text(title),
@@ -604,8 +625,8 @@ class _PasswordFieldState extends State<PasswordField> {
   }
 }
 
-/// Stepper jumlah orang (− angka +).
-class QtyStepper extends StatelessWidget {
+/// Stepper angka (− angka +). Angka bisa diketuk lalu diketik langsung.
+class QtyStepper extends StatefulWidget {
   const QtyStepper({
     super.key,
     required this.value,
@@ -619,6 +640,58 @@ class QtyStepper extends StatelessWidget {
   final int min;
   final int max;
   final String suffix;
+
+  @override
+  State<QtyStepper> createState() => _QtyStepperState();
+}
+
+class _QtyStepperState extends State<QtyStepper> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.value}');
+    _focusNode = FocusNode()..addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant QtyStepper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value &&
+        int.tryParse(_controller.text) != widget.value) {
+      _setText(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (!_focusNode.hasFocus) _commit(_controller.text);
+  }
+
+  void _setText(int v) {
+    final text = '$v';
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  /// Simpan angka ketikan, dijepit ke [min]..[max]. Kosong → nilai semula.
+  void _commit(String raw) {
+    final next = (int.tryParse(raw.trim()) ?? widget.value)
+        .clamp(widget.min, widget.max)
+        .toInt();
+    _setText(next);
+    if (next != widget.value) widget.onChanged(next);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -641,20 +714,37 @@ class QtyStepper extends StatelessWidget {
         btn(
           LucideIcons.minus,
           'Kurangi',
-          value > min ? () => onChanged(value - 1) : null,
+          widget.value > widget.min
+              ? () => widget.onChanged(widget.value - 1)
+              : null,
         ),
         SizedBox(
           width: 96,
-          child: Text(
-            '$value $suffix',
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
             textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: AppText.h3,
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              suffixText: widget.suffix.isEmpty ? null : widget.suffix,
+              suffixStyle: AppText.h3,
+            ),
+            onSubmitted: _commit,
+            onTapOutside: (_) => _focusNode.unfocus(),
           ),
         ),
         btn(
           LucideIcons.plus,
           'Tambah',
-          value < max ? () => onChanged(value + 1) : null,
+          widget.value < widget.max
+              ? () => widget.onChanged(widget.value + 1)
+              : null,
         ),
       ],
     );

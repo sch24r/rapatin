@@ -5,7 +5,7 @@ import 'models.dart';
 
 /// Data contoh untuk tahap UI. Nanti diganti data dari Supabase.
 abstract final class Img {
-  static const restoVip = 'assets/images/resto_vip.jpg';
+  static const restoVip = 'assets/images/Kingkong_Resto.png';
   static const kafeRotan = 'assets/images/kafe_rotan.jpg';
   static const ruangKaca = 'assets/images/ruang_kaca.jpg';
   static const kantinKampus = 'assets/images/kantin_kampus.jpg';

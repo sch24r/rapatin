@@ -83,7 +83,18 @@ class _TolakSheetState extends State<_TolakSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Tolak booking?', style: AppText.h2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Tolak booking?', style: AppText.h2),
+              CircleIconButton(
+                icon: LucideIcons.x,
+                size: 38,
+                tooltip: 'Tutup',
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
             'Alasan dikirim ke panitia agar mereka bisa cari jam atau tempat lain.',
@@ -113,12 +124,28 @@ class _TolakSheetState extends State<_TolakSheet> {
             const SizedBox(height: Gap.x12),
           ],
           const SizedBox(height: Gap.x8),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: _pilih == null
-                ? null
-                : () => Navigator.pop(context, _pilih),
-            child: const Text('Tolak booking'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+              ),
+              const SizedBox(width: Gap.x8),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                  ),
+                  onPressed: _pilih == null
+                      ? null
+                      : () => Navigator.pop(context, _pilih),
+                  child: const Text('Tolak booking'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -704,7 +731,18 @@ class _JadwalTabState extends State<JadwalTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Blokir slot', style: AppText.h2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Blokir slot', style: AppText.h2),
+                  CircleIconButton(
+                    icon: LucideIcons.x,
+                    size: 38,
+                    tooltip: 'Tutup',
+                    onPressed: () => Navigator.pop(c, false),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 'Untuk tamu langsung atau acara internal. Panitia tidak bisa memilih slot ini.',
@@ -747,9 +785,23 @@ class _JadwalTabState extends State<JadwalTab> {
                 hint: 'Contoh: arisan keluarga',
               ),
               const SizedBox(height: Gap.x20),
-              FilledButton(
-                onPressed: () => Navigator.pop(c, true),
-                child: const Text('Blokir slot'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: Gap.x8),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: const Text('Blokir slot'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

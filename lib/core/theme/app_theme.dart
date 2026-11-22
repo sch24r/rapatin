@@ -127,6 +127,17 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
         ),
       ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbVisibility: const WidgetStatePropertyAll(true),
+        interactive: true,
+        thickness: const WidgetStatePropertyAll(5.0),
+        radius: const Radius.circular(4.0),
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.dragged)
+              ? AppColors.primary
+              : AppColors.primary.withValues(alpha: 0.35),
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.text,
