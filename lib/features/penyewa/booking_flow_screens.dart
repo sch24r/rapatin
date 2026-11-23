@@ -9,6 +9,7 @@ import '../../data/dummy_data.dart';
 import '../../data/models.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/common.dart';
+import 'penyewa_shell.dart';
 
 /// 11 · Pilih slot: ruang, tanggal, lalu rentang jam.
 class PilihSlotScreen extends StatefulWidget {
@@ -213,7 +214,7 @@ class _PilihSlotScreenState extends State<PilihSlotScreen> {
                           kode: 'RPT-0427',
                           venue: v,
                           room: room,
-                          organisasi: 'BEM Fakultas Teknik',
+                          organisasi: organisasiAktif.value.nama,
                           acara: 'Rapat Koordinasi Dies Natalis',
                           tanggal: _tanggal,
                           jamMulai: _mulai!,
@@ -416,13 +417,17 @@ class CheckoutScreen extends StatelessWidget {
           const SizedBox(height: Gap.x20),
           Text('Detail acara', style: AppText.h2),
           const SizedBox(height: Gap.x16),
-          LabeledField(
-            label: 'Organisasi',
-            initialValue: b.organisasi,
-            icon: LucideIcons.building,
-            readOnly: true,
-            suffix: const Icon(LucideIcons.chevronDown, size: 20),
-            onTap: () => showSoon(context, 'Ganti organisasi'),
+          ValueListenableBuilder<Organisasi>(
+            valueListenable: organisasiAktif,
+            builder: (context, org, _) => LabeledField(
+              key: ValueKey(org.nama),
+              label: 'Organisasi',
+              initialValue: org.nama,
+              icon: LucideIcons.building,
+              readOnly: true,
+              suffix: const Icon(LucideIcons.chevronDown, size: 20),
+              onTap: () => showPilihOrganisasiSheet(context),
+            ),
           ),
           const SizedBox(height: Gap.x16),
           LabeledField(
@@ -473,6 +478,7 @@ class CheckoutScreen extends StatelessWidget {
                   ModalRoute.withName(Routes.penyewa),
                   arguments: b.copyWith(
                     status: BookingStatus.menungguKonfirmasi,
+                    organisasi: organisasiAktif.value.nama,
                   ),
                 ),
                 child: const Text('Booking sekarang'),

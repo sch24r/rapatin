@@ -106,16 +106,26 @@ class BerandaTab extends StatelessWidget {
                         'Halo, Alden',
                         style: AppText.caption.copyWith(fontSize: 13),
                       ),
-                      InkWell(
-                        borderRadius: Radii.smAll,
-                        onTap: () => showSoon(context, 'Ganti organisasi'),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('BEM Fakultas Teknik', style: AppText.h2),
-                            const SizedBox(width: 4),
-                            const Icon(LucideIcons.chevronDown, size: 20),
-                          ],
+                      ValueListenableBuilder<Organisasi>(
+                        valueListenable: organisasiAktif,
+                        builder: (context, org, _) => InkWell(
+                          borderRadius: Radii.smAll,
+                          onTap: () => showPilihOrganisasiSheet(context),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  org.nama,
+                                  style: AppText.h2,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(LucideIcons.chevronDown, size: 20),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1018,12 +1028,14 @@ class AkunPenyewaTab extends StatelessWidget {
                   title: 'Edit profil',
                   onTap: () => showSoon(context, 'Edit profil'),
                 ),
-                MenuTile(
-                  icon: LucideIcons.building2,
-                  title: 'Organisasi',
-                  subtitle: 'BEM Fakultas Teknik · Sekretaris',
-                  onTap: () =>
-                      Navigator.pushNamed(context, Routes.profilOrganisasi),
+                ValueListenableBuilder<Organisasi>(
+                  valueListenable: organisasiAktif,
+                  builder: (context, org, _) => MenuTile(
+                    icon: LucideIcons.building2,
+                    title: 'Organisasi',
+                    subtitle: org.ringkasan,
+                    onTap: () => showPilihOrganisasiSheet(context),
+                  ),
                 ),
                 MenuTile(
                   icon: LucideIcons.bell,
@@ -1146,5 +1158,170 @@ Future<void> konfirmasiKeluar(BuildContext context) async {
   );
   if (ok == true && context.mounted) {
     Navigator.pushNamedAndRemoveUntil(context, Routes.peran, (_) => false);
+  }
+}
+
+// ───────────────────────── Pilih Organisasi Sheet ─────────────────────────
+
+Future<void> showPilihOrganisasiSheet(BuildContext context) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => const _PilihOrganisasiSheet(),
+  );
+}
+
+class _PilihOrganisasiSheet extends StatelessWidget {
+  const _PilihOrganisasiSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<Organisasi>>(
+      valueListenable: daftarOrganisasiPenyewa,
+      builder: (context, list, _) {
+        return ValueListenableBuilder<Organisasi>(
+          valueListenable: organisasiAktif,
+          builder: (context, aktif, _) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Pilih organisasi', style: AppText.h2),
+                        CircleIconButton(
+                          icon: LucideIcons.x,
+                          size: 38,
+                          tooltip: 'Tutup',
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Gap.x4),
+                    Text(
+                      'Reservasi tempat dan slip pemesanan akan diatasnamakan organisasi yang kamu pilih.',
+                      style: AppText.caption,
+                    ),
+                    const SizedBox(height: Gap.x16),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: list.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: Gap.x8),
+                        itemBuilder: (context, index) {
+                          final org = list[index];
+                          final isSelected = org == aktif;
+                          return InkWell(
+                            borderRadius: Radii.mdAll,
+                            onTap: () {
+                              pilihOrganisasi(org);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Organisasi aktif diubah ke ${org.nama}',
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.all(Gap.x12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primarySoft
+                                    : AppColors.card,
+                                borderRadius: Radii.mdAll,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                                  width: isSelected ? 1.5 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  IconBox(
+                                    LucideIcons.building2,
+                                    size: 40,
+                                    fg: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textMuted,
+                                    bg: isSelected
+                                        ? AppColors.card
+                                        : AppColors.bg,
+                                  ),
+                                  const SizedBox(width: Gap.x12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          org.nama,
+                                          style: AppText.bodyMedium.semi.copyWith(
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : AppColors.text,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${org.jenis} · ${org.jabatan}',
+                                          style: AppText.caption,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: Gap.x8),
+                                  Icon(
+                                    isSelected
+                                        ? LucideIcons.circleCheck
+                                        : LucideIcons.circle,
+                                    size: 22,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textMuted,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: Gap.x16),
+                    OutlinedButton.icon(
+                      icon: const Icon(LucideIcons.plus, size: 18),
+                      label: const Text('Tambah organisasi baru'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(
+                          context,
+                          Routes.profilOrganisasi,
+                          arguments: true,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/theme/app_colors.dart';
@@ -351,3 +352,39 @@ const notifMitra = [
     '2 hari',
   ),
 ];
+
+// ───────────────────────── Organisasi Penyewa ─────────────────────────
+
+final daftarOrganisasiPenyewa = ValueNotifier<List<Organisasi>>([
+  const Organisasi(
+    nama: 'BEM Fakultas Teknik',
+    jenis: 'BEM',
+    jabatan: 'Sekretaris',
+    kampus: 'Institut Teknologi Sepuluh Nopember',
+  ),
+  const Organisasi(
+    nama: 'HMD Sistem Informasi',
+    jenis: 'HIMA',
+    jabatan: 'Koordinator Acara',
+    kampus: 'Institut Teknologi Sepuluh Nopember',
+  ),
+  const Organisasi(
+    nama: 'Panitia Dies Natalis 65',
+    jenis: 'Kepanitiaan',
+    jabatan: 'Sie Konsumsi & Logistik',
+    kampus: 'Institut Teknologi Sepuluh Nopember',
+  ),
+]);
+
+final organisasiAktif =
+    ValueNotifier<Organisasi>(daftarOrganisasiPenyewa.value.first);
+
+void pilihOrganisasi(Organisasi org) {
+  organisasiAktif.value = org;
+}
+
+void tambahOrganisasi(Organisasi org) {
+  daftarOrganisasiPenyewa.value = [...daftarOrganisasiPenyewa.value, org];
+  organisasiAktif.value = org;
+}
+
