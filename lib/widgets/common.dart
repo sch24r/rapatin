@@ -289,9 +289,9 @@ class PillChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
+          // Tanpa `alignment`: Container ber-alignment melebar penuh di Wrap.
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
-          alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

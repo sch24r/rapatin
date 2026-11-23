@@ -56,9 +56,12 @@ class Venue {
     required this.rating,
     required this.ulasan,
     required this.jamBuka,
+    required this.jamBukaMulai,
+    required this.jamBukaTutup,
     required this.fasilitas,
     required this.rooms,
     required this.menu,
+    this.hariLibur = const {},
     this.promo,
     this.slotKosong = 'Slot kosong hari ini',
   });
@@ -71,6 +74,13 @@ class Venue {
   final double rating;
   final int ulasan;
   final String jamBuka;
+
+  /// Jam buka dan tutup (0–24), dipakai filter pencarian.
+  final int jamBukaMulai;
+  final int jamBukaTutup;
+
+  /// Hari tutup, pakai [DateTime.weekday] (1 = Senin … 7 = Minggu).
+  final Set<int> hariLibur;
   final List<Fasilitas> fasilitas;
   final List<Room> rooms;
   final List<MenuPaket> menu;

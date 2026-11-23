@@ -37,6 +37,8 @@ const kingKong = Venue(
   rating: 4.8,
   ulasan: 32,
   jamBuka: 'Buka setiap hari · 10.00–22.00',
+  jamBukaMulai: 10,
+  jamBukaTutup: 22,
   fasilitas: [
     Fasilitas.privat,
     Fasilitas.proyektor,
@@ -83,6 +85,8 @@ const kopiRotan = Venue(
   rating: 4.7,
   ulasan: 51,
   jamBuka: 'Buka setiap hari · 08.00–23.00',
+  jamBukaMulai: 8,
+  jamBukaTutup: 23,
   fasilitas: [Fasilitas.colokan, Fasilitas.wifi, Fasilitas.whiteboard],
   promo: '13.00–16.00 −15%',
   rooms: [
@@ -107,6 +111,9 @@ const terasKaca = Venue(
   rating: 4.9,
   ulasan: 18,
   jamBuka: 'Sen–Sab · 09.00–21.00',
+  jamBukaMulai: 9,
+  jamBukaTutup: 21,
+  hariLibur: {DateTime.sunday},
   fasilitas: [
     Fasilitas.privat,
     Fasilitas.proyektor,
@@ -136,6 +143,8 @@ const warungSinar = Venue(
   rating: 4.5,
   ulasan: 64,
   jamBuka: 'Buka setiap hari · 07.00–22.00',
+  jamBukaMulai: 7,
+  jamBukaTutup: 22,
   fasilitas: [Fasilitas.whiteboard, Fasilitas.colokan],
   promo: '15.00–18.00 −10%',
   rooms: [
