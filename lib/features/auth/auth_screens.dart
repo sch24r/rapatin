@@ -4,6 +4,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../app.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../data/dummy_data.dart';
+import '../../data/models.dart';
 import '../../widgets/common.dart';
 
 /// 02 · Pilih peran.
@@ -496,7 +498,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
   }
 }
 
-/// 06 · Buat profil organisasi.
+/// 06 · Buat profil organisasi / Tambah organisasi.
 class ProfilOrganisasiScreen extends StatefulWidget {
   const ProfilOrganisasiScreen({super.key});
 
@@ -506,16 +508,97 @@ class ProfilOrganisasiScreen extends StatefulWidget {
 
 class _ProfilOrganisasiScreenState extends State<ProfilOrganisasiScreen> {
   String _jenis = 'BEM';
+  late final TextEditingController _namaController;
+  late final TextEditingController _jabatanController;
+  late final TextEditingController _kampusController;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _namaController = TextEditingController();
+    _jabatanController = TextEditingController();
+    _kampusController = TextEditingController(
+      text: 'Institut Teknologi Sepuluh Nopember',
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final isTambah = ModalRoute.of(context)?.settings.arguments == true;
+      if (!isTambah) {
+        _namaController.text = 'BEM Fakultas Teknik';
+        _jabatanController.text = 'Sekretaris';
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _jabatanController.dispose();
+    _kampusController.dispose();
+    super.dispose();
+  }
+
+  void _simpan(bool isTambah) {
+    final nama = _namaController.text.trim();
+    final jabatan = _jabatanController.text.trim();
+    final kampus = _kampusController.text.trim();
+
+    if (nama.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Nama organisasi wajib diisi')),
+        );
+      return;
+    }
+
+    final newOrg = Organisasi(
+      nama: nama,
+      jenis: _jenis,
+      jabatan: jabatan.isEmpty ? 'Anggota' : jabatan,
+      kampus: kampus.isEmpty ? 'Institut Teknologi Sepuluh Nopember' : kampus,
+    );
+
+    tambahOrganisasi(newOrg);
+
+    if (isTambah) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Organisasi "${newOrg.nama}" berhasil ditambahkan.'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      Navigator.pop(context);
+    } else {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        Routes.penyewa,
+        (_) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isTambah = ModalRoute.of(context)?.settings.arguments == true;
     return AuthScaffold(
-      title: 'Profil organisasi',
-      subtitle: 'Nama organisasi muncul di slip reservasi dan dilihat mitra.',
+      title: isTambah ? 'Tambah organisasi' : 'Profil organisasi',
+      subtitle: isTambah
+          ? 'Organisasi baru akan otomatis menjadi organisasi aktifmu.'
+          : 'Nama organisasi muncul di slip reservasi dan dilihat mitra.',
       fields: [
-        const LabeledField(
+        LabeledField(
           label: 'Nama organisasi',
-          initialValue: 'BEM Fakultas Teknik',
+          hint: 'Misal: HMD Sistem Informasi, Panitia Wisuda',
+          controller: _namaController,
           icon: LucideIcons.building2,
         ),
         const SizedBox(height: Gap.x16),
@@ -540,25 +623,23 @@ class _ProfilOrganisasiScreenState extends State<ProfilOrganisasiScreen> {
           ],
         ),
         const SizedBox(height: Gap.x16),
-        const LabeledField(
+        LabeledField(
           label: 'Jabatanmu',
-          initialValue: 'Sekretaris',
+          hint: 'Misal: Ketua, Koordinator, Sekretaris',
+          controller: _jabatanController,
           icon: LucideIcons.user,
         ),
         const SizedBox(height: Gap.x16),
-        const LabeledField(
+        LabeledField(
           label: 'Kampus',
-          initialValue: 'Institut Teknologi Sepuluh Nopember',
+          hint: 'Nama kampus / perguruan tinggi',
+          controller: _kampusController,
           icon: LucideIcons.school,
         ),
       ],
       cta: FilledButton(
-        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-          context,
-          Routes.penyewa,
-          (_) => false,
-        ),
-        child: const Text('Simpan dan mulai'),
+        onPressed: () => _simpan(isTambah),
+        child: Text(isTambah ? 'Simpan organisasi' : 'Simpan dan mulai'),
       ),
     );
   }

@@ -2,6 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 
+class Organisasi {
+  const Organisasi({
+    required this.nama,
+    required this.jenis,
+    required this.jabatan,
+    this.kampus = 'Institut Teknologi Sepuluh Nopember',
+  });
+
+  final String nama;
+  final String jenis;
+  final String jabatan;
+  final String kampus;
+
+  String get ringkasan => '$nama · $jabatan';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Organisasi &&
+          runtimeType == other.runtimeType &&
+          nama == other.nama &&
+          jenis == other.jenis &&
+          jabatan == other.jabatan &&
+          kampus == other.kampus;
+
+  @override
+  int get hashCode => Object.hash(nama, jenis, jabatan, kampus);
+}
+
 enum Fasilitas {
   privat('Ruang privat'),
   proyektor('Proyektor'),
@@ -169,11 +198,11 @@ class Booking {
   int get kotor => sewa + minOrder - diskon;
   int get bersih => kotor - feeMitra;
 
-  Booking copyWith({BookingStatus? status}) => Booking(
+  Booking copyWith({BookingStatus? status, String? organisasi}) => Booking(
     kode: kode,
     venue: venue,
     room: room,
-    organisasi: organisasi,
+    organisasi: organisasi ?? this.organisasi,
     acara: acara,
     tanggal: tanggal,
     jamMulai: jamMulai,
