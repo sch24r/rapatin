@@ -356,8 +356,12 @@ class AkunMitraTab extends StatelessWidget {
                 MenuTile(
                   icon: LucideIcons.messageCircle,
                   title: 'Bantuan',
-                  subtitle: 'Chat admin Rapatin',
-                  onTap: () => showSoon(context, 'Bantuan'),
+                  subtitle: 'FAQ dan chat admin Rapatin',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.bantuan,
+                    arguments: Peran.mitra,
+                  ),
                 ),
               ],
             ),

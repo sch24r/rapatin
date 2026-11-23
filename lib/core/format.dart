@@ -54,3 +54,7 @@ String tanggalPendek(DateTime d) =>
 
 /// "19.00"
 String jam(int h) => '${h.toString().padLeft(2, '0')}.00';
+
+/// "09.05"
+String jamMenit(DateTime d) =>
+    '${d.hour.toString().padLeft(2, '0')}.${d.minute.toString().padLeft(2, '0')}';

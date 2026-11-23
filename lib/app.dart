@@ -6,12 +6,14 @@ import 'core/theme/app_theme.dart';
 import 'data/models.dart';
 import 'features/auth/auth_screens.dart';
 import 'features/auth/splash_screen.dart';
+import 'features/bantuan/bantuan_screens.dart';
 import 'features/mitra/mitra_booking_screens.dart';
 import 'features/mitra/mitra_onboarding_screens.dart';
 import 'features/mitra/mitra_shell.dart';
 import 'features/mitra/mitra_tempat_screens.dart';
 import 'features/mitra/mitra_uang_screens.dart';
 import 'features/penyewa/booking_flow_screens.dart';
+import 'features/penyewa/edit_profil_screen.dart';
 import 'features/penyewa/payment_screens.dart';
 import 'features/penyewa/penyewa_shell.dart';
 import 'features/penyewa/status_screens.dart';
@@ -37,6 +39,11 @@ abstract final class Routes {
   static const detailBooking = '/booking';
   static const notifikasi = '/notifikasi';
   static const rating = '/rating';
+  static const editProfil = '/akun/edit';
+
+  /// Argumen: [Peran].
+  static const bantuan = '/bantuan';
+  static const chatAdmin = '/bantuan/chat';
 
   static const mitraRegister = '/mitra/daftar';
   static const mitraDataTempat = '/mitra/data-tempat';
@@ -55,11 +62,11 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.trackpad,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.trackpad,
+  };
 
   @override
   Widget buildScrollbar(
@@ -108,6 +115,13 @@ class RapatinApp extends StatelessWidget {
       Routes.detailBooking => DetailBookingScreen(booking: arg as Booking),
       Routes.notifikasi => const NotifikasiScreen(),
       Routes.rating => RatingScreen(booking: arg as Booking),
+      Routes.editProfil => const EditProfilScreen(),
+      Routes.bantuan => BantuanScreen(
+        peran: arg is Peran ? arg : Peran.penyewa,
+      ),
+      Routes.chatAdmin => ChatAdminScreen(
+        peran: arg is Peran ? arg : Peran.penyewa,
+      ),
       Routes.mitraRegister => const MitraRegisterScreen(),
       Routes.mitraDataTempat => const MitraDataTempatScreen(),
       Routes.mitra => MitraShell(initialTab: arg is int ? arg : 0),

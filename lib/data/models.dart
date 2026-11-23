@@ -2,6 +2,43 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 
+/// Data diri pemilik akun (Penyewa).
+class ProfilPengguna {
+  const ProfilPengguna({
+    required this.nama,
+    required this.email,
+    required this.hp,
+    required this.kampus,
+  });
+
+  final String nama;
+  final String email;
+  final String hp;
+  final String kampus;
+
+  String get namaDepan => nama.trim().split(RegExp(r'\s+')).first;
+
+  /// "Alden Pratama" -> "AP", "Alden" -> "AL".
+  String get inisial {
+    final kata = nama.trim().split(RegExp(r'\s+'));
+    if (kata.length >= 2) return '${kata[0][0]}${kata[1][0]}'.toUpperCase();
+    final k = kata.first;
+    return (k.length >= 2 ? k.substring(0, 2) : k).toUpperCase();
+  }
+
+  ProfilPengguna copyWith({
+    String? nama,
+    String? email,
+    String? hp,
+    String? kampus,
+  }) => ProfilPengguna(
+    nama: nama ?? this.nama,
+    email: email ?? this.email,
+    hp: hp ?? this.hp,
+    kampus: kampus ?? this.kampus,
+  );
+}
+
 class Organisasi {
   const Organisasi({
     required this.nama,
