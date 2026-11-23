@@ -376,8 +376,19 @@ final daftarOrganisasiPenyewa = ValueNotifier<List<Organisasi>>([
   ),
 ]);
 
-final organisasiAktif =
-    ValueNotifier<Organisasi>(daftarOrganisasiPenyewa.value.first);
+/// Profil Penyewa yang sedang masuk. Diubah lewat layar Edit profil.
+final profilPenyewa = ValueNotifier<ProfilPengguna>(
+  const ProfilPengguna(
+    nama: 'Alden Pratama',
+    email: 'alden@student.its.ac.id',
+    hp: '081234564407',
+    kampus: 'Institut Teknologi Sepuluh Nopember',
+  ),
+);
+
+final organisasiAktif = ValueNotifier<Organisasi>(
+  daftarOrganisasiPenyewa.value.first,
+);
 
 void pilihOrganisasi(Organisasi org) {
   organisasiAktif.value = org;
@@ -387,4 +398,3 @@ void tambahOrganisasi(Organisasi org) {
   daftarOrganisasiPenyewa.value = [...daftarOrganisasiPenyewa.value, org];
   organisasiAktif.value = org;
 }
-

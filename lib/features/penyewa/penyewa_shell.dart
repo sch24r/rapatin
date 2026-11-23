@@ -102,9 +102,12 @@ class BerandaTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Halo, Alden',
-                        style: AppText.caption.copyWith(fontSize: 13),
+                      ValueListenableBuilder<ProfilPengguna>(
+                        valueListenable: profilPenyewa,
+                        builder: (context, p, _) => Text(
+                          'Halo, ${p.namaDepan}',
+                          style: AppText.caption.copyWith(fontSize: 13),
+                        ),
                       ),
                       ValueListenableBuilder<Organisasi>(
                         valueListenable: organisasiAktif,
@@ -983,39 +986,45 @@ class AkunPenyewaTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Gap.x16),
-          AppCard(
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.primarySoft,
-                  child: Text(
-                    'AL',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+          ValueListenableBuilder<ProfilPengguna>(
+            valueListenable: profilPenyewa,
+            builder: (context, p, _) => AppCard(
+              onTap: () => Navigator.pushNamed(context, Routes.editProfil),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.primarySoft,
+                    child: Text(
+                      p.inisial,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: Gap.x16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Alden Pratama', style: AppText.h3),
-                      Text(
-                        'alden@student.its.ac.id',
-                        style: AppText.caption.copyWith(fontSize: 13),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Penyewa · ITS',
-                        style: AppText.label.tint(AppColors.primary),
-                      ),
-                    ],
+                  const SizedBox(width: Gap.x16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.nama, style: AppText.h3),
+                        Text(
+                          p.email,
+                          style: AppText.caption.copyWith(fontSize: 13),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Penyewa · ${p.kampus}',
+                          style: AppText.label.tint(AppColors.primary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: Gap.x16),
@@ -1026,7 +1035,8 @@ class AkunPenyewaTab extends StatelessWidget {
                 MenuTile(
                   icon: LucideIcons.pencil,
                   title: 'Edit profil',
-                  onTap: () => showSoon(context, 'Edit profil'),
+                  subtitle: 'Nama, email, nomor HP, kampus',
+                  onTap: () => Navigator.pushNamed(context, Routes.editProfil),
                 ),
                 ValueListenableBuilder<Organisasi>(
                   valueListenable: organisasiAktif,
@@ -1050,8 +1060,12 @@ class AkunPenyewaTab extends StatelessWidget {
                 MenuTile(
                   icon: LucideIcons.messageCircle,
                   title: 'Bantuan',
-                  subtitle: 'Chat admin Rapatin',
-                  onTap: () => showSoon(context, 'Bantuan'),
+                  subtitle: 'FAQ dan chat admin Rapatin',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.bantuan,
+                    arguments: Peran.penyewa,
+                  ),
                 ),
               ],
             ),
@@ -1185,7 +1199,12 @@ class _PilihOrganisasiSheet extends StatelessWidget {
           builder: (context, aktif, _) {
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.x20, 0, Gap.x20, Gap.x20),
+                padding: const EdgeInsets.fromLTRB(
+                  Gap.x20,
+                  0,
+                  Gap.x20,
+                  Gap.x20,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1271,11 +1290,12 @@ class _PilihOrganisasiSheet extends StatelessWidget {
                                       children: [
                                         Text(
                                           org.nama,
-                                          style: AppText.bodyMedium.semi.copyWith(
-                                            color: isSelected
-                                                ? AppColors.primary
-                                                : AppColors.text,
-                                          ),
+                                          style: AppText.bodyMedium.semi
+                                              .copyWith(
+                                                color: isSelected
+                                                    ? AppColors.primary
+                                                    : AppColors.text,
+                                              ),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
