@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app.dart';
@@ -85,9 +87,172 @@ class PembayaranScreen extends StatefulWidget {
   State<PembayaranScreen> createState() => _PembayaranScreenState();
 }
 
+/// Bukti transfer yang dipilih dari kamera atau galeri.
+class _Bukti {
+  const _Bukti(this.file, this.nama, this.ukuran);
+  final File file;
+  final String nama;
+  final int ukuran;
+}
+
 class _PembayaranScreenState extends State<PembayaranScreen> {
+  static const _maksUkuran = 5 * 1024 * 1024;
+  static const _ekstensi = {'jpg', 'jpeg', 'png'};
+
+  final _picker = ImagePicker();
   bool _rincian = false;
-  bool _terunggah = false;
+  _Bukti? _bukti;
+  bool _memuat = false;
+
+  bool get _terunggah => _bukti != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulihkanPilihan();
+  }
+
+  /// Android bisa menutup aplikasi saat kamera terbuka. Ambil lagi fotonya.
+  Future<void> _pulihkanPilihan() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final lost = await _picker.retrieveLostData();
+      final f = lost.file;
+      if (f != null && mounted) await _terima(f);
+    } on PlatformException {
+      // Tidak ada pilihan yang tertinggal.
+    }
+  }
+
+  void _pesan(String teks) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(teks)));
+  }
+
+  Future<void> _pilihSumber() async {
+    final sumber = await showModalBottomSheet<ImageSource>(
+      context: context,
+      useSafeArea: true,
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(Gap.x16, 0, Gap.x16, Gap.x16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, Gap.x12),
+                child: Text('Unggah bukti transfer', style: AppText.h2),
+              ),
+              _SumberTile(
+                icon: LucideIcons.image,
+                title: 'Pilih dari galeri',
+                subtitle: 'Screenshot bukti dari m-banking atau e-wallet',
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: Gap.x8),
+              _SumberTile(
+                icon: LucideIcons.camera,
+                title: 'Ambil foto',
+                subtitle: 'Foto struk atau layar HP lain',
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (sumber == null || !mounted) return;
+
+    setState(() => _memuat = true);
+    try {
+      final f = await _picker.pickImage(
+        source: sumber,
+        maxWidth: 2000,
+        maxHeight: 2000,
+        imageQuality: 85,
+      );
+      if (f != null && mounted) await _terima(f);
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      _pesan(
+        e.code.contains('access_denied')
+            ? 'Izin ${sumber == ImageSource.camera ? 'kamera' : 'galeri'} ditolak. Aktifkan di Pengaturan HP.'
+            : 'Gagal membuka ${sumber == ImageSource.camera ? 'kamera' : 'galeri'}. Coba lagi.',
+      );
+    } finally {
+      if (mounted) setState(() => _memuat = false);
+    }
+  }
+
+  Future<void> _terima(XFile f) async {
+    final ext = f.name.contains('.')
+        ? f.name.split('.').last.toLowerCase()
+        : '';
+    if (!_ekstensi.contains(ext)) {
+      _pesan('Format belum didukung. Pakai JPG atau PNG.');
+      return;
+    }
+    final ukuran = await f.length();
+    if (!mounted) return;
+    if (ukuran > _maksUkuran) {
+      _pesan('Ukuran ${ukuranFile(ukuran)}, maksimal 5 MB. Pilih gambar lain.');
+      return;
+    }
+    // image_picker menamai ulang file hasil kompres (mis. scaled_36.jpg),
+    // jadi tampilkan nama yang mudah dikenali.
+    final nama = 'bukti_${widget.booking.kode}.${ext == 'jpeg' ? 'jpg' : ext}';
+    setState(() => _bukti = _Bukti(File(f.path), nama, ukuran));
+  }
+
+  void _lihatBukti() {
+    final b = _bukti;
+    if (b == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        insetPadding: const EdgeInsets.all(Gap.x16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: InteractiveViewer(
+                maxScale: 4,
+                child: Image.file(b.file, fit: BoxFit.contain),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x16,
+                Gap.x8,
+                Gap.x8,
+                Gap.x8,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      b.nama,
+                      style: AppText.caption,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Tutup'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,9 +433,11 @@ class _PembayaranScreenState extends State<PembayaranScreen> {
           ),
           const SizedBox(height: Gap.x12),
           _UploadBox(
-            uploaded: _terunggah,
-            onTap: () => setState(() => _terunggah = true),
-            onRemove: () => setState(() => _terunggah = false),
+            bukti: _bukti,
+            memuat: _memuat,
+            onTap: _memuat ? null : _pilihSumber,
+            onPreview: _lihatBukti,
+            onRemove: () => setState(() => _bukti = null),
           ),
           const SizedBox(height: Gap.x16),
           const InfoBanner(
@@ -345,28 +512,87 @@ class _SoftButton extends StatelessWidget {
   }
 }
 
+class _SumberTile extends StatelessWidget {
+  const _SumberTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      onTap: onTap,
+      child: Row(
+        children: [
+          IconBox(icon, size: 44),
+          const SizedBox(width: Gap.x12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.bodyMedium.semi),
+                Text(subtitle, style: AppText.caption),
+              ],
+            ),
+          ),
+          const Icon(LucideIcons.chevronRight, color: AppColors.textMuted),
+        ],
+      ),
+    );
+  }
+}
+
 class _UploadBox extends StatelessWidget {
   const _UploadBox({
-    required this.uploaded,
+    required this.bukti,
+    required this.memuat,
     required this.onTap,
+    required this.onPreview,
     required this.onRemove,
   });
-  final bool uploaded;
-  final VoidCallback onTap;
+  final _Bukti? bukti;
+  final bool memuat;
+  final VoidCallback? onTap;
+  final VoidCallback onPreview;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    if (uploaded) {
+    final b = bukti;
+    if (b != null) {
       return AppCard(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            const IconBox(
-              LucideIcons.image,
-              size: 52,
-              bg: AppColors.successSoft,
-              fg: AppColors.success,
+            Semantics(
+              button: true,
+              label: 'Lihat bukti transfer',
+              child: GestureDetector(
+                onTap: onPreview,
+                child: ClipRRect(
+                  borderRadius: Radii.smAll,
+                  child: Image.file(
+                    b.file,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    cacheWidth: 168,
+                    errorBuilder: (_, _, _) => const IconBox(
+                      LucideIcons.image,
+                      size: 56,
+                      bg: AppColors.successSoft,
+                      fg: AppColors.success,
+                    ),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: Gap.x12),
             Expanded(
@@ -374,13 +600,22 @@ class _UploadBox extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'bukti_transfer_0427.jpg',
+                    b.nama,
                     style: AppText.bodyMedium,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '284 KB · siap dikirim',
+                    '${ukuranFile(b.ukuran)} · siap dikirim',
                     style: AppText.caption.tint(AppColors.success),
+                  ),
+                  const SizedBox(height: 2),
+                  InkWell(
+                    onTap: onTap,
+                    child: Text(
+                      'Ganti gambar',
+                      style: AppText.label.tint(AppColors.primary),
+                    ),
                   ),
                 ],
               ),
@@ -408,10 +643,26 @@ class _UploadBox extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const IconBox(LucideIcons.upload, size: 44),
+                if (memuat)
+                  const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Padding(
+                      padding: EdgeInsets.all(10),
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  )
+                else
+                  const IconBox(LucideIcons.upload, size: 44),
                 const SizedBox(height: Gap.x8),
-                Text('Unggah bukti transfer', style: AppText.bodyMedium.semi),
-                Text('JPG atau PNG, maks 5 MB', style: AppText.caption),
+                Text(
+                  memuat ? 'Membuka…' : 'Unggah bukti transfer',
+                  style: AppText.bodyMedium.semi,
+                ),
+                Text(
+                  'Dari galeri atau kamera · JPG/PNG, maks 5 MB',
+                  style: AppText.caption,
+                ),
               ],
             ),
           ),

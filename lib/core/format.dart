@@ -23,6 +23,15 @@ String rupiahShort(int value) {
   return 'Rp$value';
 }
 
+/// Ukuran file: 290816 -> "284 KB", 1572864 -> "1,5 MB".
+String ukuranFile(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
+  }
+  if (bytes >= 1024) return '${(bytes / 1024).round()} KB';
+  return '$bytes B';
+}
+
 const namaHari = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const namaBulan = [
   'Januari',
