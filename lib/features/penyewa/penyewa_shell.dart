@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../data/dummy_data.dart';
+import '../../data/filter_pencarian.dart';
 import '../../data/models.dart';
 import '../../widgets/cards.dart';
 import '../../widgets/common.dart';
@@ -23,7 +24,16 @@ class PenyewaShell extends StatefulWidget {
 class _PenyewaShellState extends State<PenyewaShell> {
   late int _tab = widget.initialTab;
 
+  /// Kriteria pencarian yang dipakai bersama oleh Beranda dan Cari.
+  final _filter = ValueNotifier<FilterPencarian>(FilterPencarian.awal);
+
   void _go(int i) => setState(() => _tab = i);
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +48,12 @@ class _PenyewaShellState extends State<PenyewaShell> {
         body: IndexedStack(
           index: _tab,
           children: [
-            BerandaTab(onCari: () => _go(1), onBooking: () => _go(2)),
-            CariTab(onBack: () => _go(0)),
+            BerandaTab(
+              filter: _filter,
+              onCari: () => _go(1),
+              onBooking: () => _go(2),
+            ),
+            CariTab(filter: _filter, onBack: () => _go(0)),
             BookingSayaTab(onBack: () => _go(0)),
             AkunPenyewaTab(onBack: () => _go(0)),
           ],
@@ -62,7 +76,13 @@ class _PenyewaShellState extends State<PenyewaShell> {
 // ───────────────────────── 07 · Beranda ─────────────────────────
 
 class BerandaTab extends StatelessWidget {
-  const BerandaTab({super.key, required this.onCari, required this.onBooking});
+  const BerandaTab({
+    super.key,
+    required this.filter,
+    required this.onCari,
+    required this.onBooking,
+  });
+  final ValueNotifier<FilterPencarian> filter;
   final VoidCallback onCari;
   final VoidCallback onBooking;
 
@@ -155,7 +175,7 @@ class BerandaTab extends StatelessWidget {
           const SizedBox(height: Gap.x16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gap.x16),
-            child: _QuickSearchCard(onCari: onCari),
+            child: _QuickSearchCard(filter: filter, onCari: onCari),
           ),
           const SizedBox(height: Gap.x24),
           Padding(
@@ -171,12 +191,7 @@ class BerandaTab extends StatelessWidget {
             height: 272,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(
-                Gap.x16,
-                0,
-                Gap.x16,
-                Gap.x8,
-              ),
+              padding: const EdgeInsets.fromLTRB(Gap.x16, 0, Gap.x16, Gap.x8),
               itemCount: semuaVenue.where((v) => v.promo != null).length,
               separatorBuilder: (_, _) => const SizedBox(width: Gap.x12),
               itemBuilder: (context, i) {
@@ -218,20 +233,32 @@ class BerandaTab extends StatelessWidget {
   }
 }
 
-class _QuickSearchCard extends StatelessWidget {
-  const _QuickSearchCard({required this.onCari});
-  final VoidCallback onCari;
+/// Field ringkas (ikon + label + nilai) yang bisa diketuk.
+class _FieldTile extends StatelessWidget {
+  const _FieldTile({
+    required this.icon,
+    required this.value,
+    required this.onTap,
+    this.label,
+  });
+  final IconData icon;
+  final String? label;
+  final String value;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    Widget field(IconData icon, String label, String value) => Material(
+    return Material(
       color: AppColors.surfaceMuted,
       borderRadius: Radii.mdAll,
       child: InkWell(
         borderRadius: Radii.mdAll,
-        onTap: () => _showFilterSheet(context),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: label == null ? 14 : 10,
+          ),
           child: Row(
             children: [
               Icon(icon, size: 20, color: AppColors.textMuted),
@@ -240,7 +267,11 @@ class _QuickSearchCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: AppText.caption.copyWith(fontSize: 13)),
+                    if (label != null)
+                      Text(
+                        label!,
+                        style: AppText.caption.copyWith(fontSize: 13),
+                      ),
                     Text(
                       value,
                       style: AppText.bodyMedium.semi.copyWith(fontSize: 15),
@@ -255,65 +286,138 @@ class _QuickSearchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
 
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Cari tempat rapat', style: AppText.h2),
-          const SizedBox(height: Gap.x12),
-          field(LucideIcons.users, 'Jumlah orang', '25 orang'),
-          const SizedBox(height: Gap.x8),
-          Row(
-            children: [
-              Expanded(
-                child: field(
-                  LucideIcons.calendar,
-                  'Tanggal',
-                  tanggalPendek(tanggalAcara),
-                ),
-              ),
-              const SizedBox(width: Gap.x8),
-              Expanded(child: field(LucideIcons.clock, 'Jam', '19.00–21.00')),
-            ],
-          ),
-          const SizedBox(height: Gap.x12),
-          FilledButton(onPressed: onCari, child: const Text('Cari tempat')),
-          const SizedBox(height: Gap.x12),
-          Text(
-            'Pencarian terakhir',
-            style: AppText.caption.copyWith(fontSize: 13),
-          ),
-          const SizedBox(height: Gap.x8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(bottom: Gap.x8),
-            child: Row(
+Future<DateTime?> _pilihTanggal(BuildContext context, DateTime awal) {
+  final hariIni = DateUtils.dateOnly(DateTime.now());
+  final mulai = awal.isBefore(hariIni) ? awal : hariIni;
+  return showDatePicker(
+    context: context,
+    initialDate: awal,
+    firstDate: mulai,
+    lastDate: DateTime(mulai.year + 1, 12, 31),
+    helpText: 'Tanggal rapat',
+    cancelText: 'Batal',
+    confirmText: 'Pilih',
+  );
+}
+
+String _labelJam(WaktuRapat? w) => w == null ? 'Semua jam' : w.rentang;
+
+class _QuickSearchCard extends StatelessWidget {
+  const _QuickSearchCard({required this.filter, required this.onCari});
+  final ValueNotifier<FilterPencarian> filter;
+  final VoidCallback onCari;
+
+  /// Pencarian terakhir: (label chip, kriteria).
+  static final _terakhir = <(String, FilterPencarian)>[
+    (
+      '25 orang · Sab 19.00',
+      FilterPencarian(
+        orang: 25,
+        tanggal: DateTime(2026, 11, 21),
+        waktu: WaktuRapat.malam,
+      ),
+    ),
+    (
+      '12 orang · Min 15.00',
+      FilterPencarian(
+        orang: 12,
+        tanggal: DateTime(2026, 11, 22),
+        waktu: WaktuRapat.sore,
+      ),
+    ),
+    (
+      '40 orang · Jum 13.00',
+      FilterPencarian(
+        orang: 40,
+        tanggal: DateTime(2026, 11, 27),
+        waktu: WaktuRapat.siang,
+      ),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<FilterPencarian>(
+      valueListenable: filter,
+      builder: (context, f, _) => AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Cari tempat rapat', style: AppText.h2),
+            const SizedBox(height: Gap.x12),
+            _FieldTile(
+              icon: LucideIcons.users,
+              label: 'Jumlah orang',
+              value: '${f.orang} orang',
+              onTap: () => _showFilterSheet(context, filter),
+            ),
+            const SizedBox(height: Gap.x8),
+            Row(
               children: [
-                for (final s in const [
-                  '25 orang · Sab 19.00',
-                  '12 orang · Min 15.00',
-                  '40 orang · Jum 13.00',
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: Gap.x8),
-                    child: ActionChip(
-                      onPressed: onCari,
-                      avatar: const Icon(
-                        LucideIcons.repeat,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(s, style: AppText.label),
-                      backgroundColor: AppColors.surfaceMuted,
-                      side: BorderSide.none,
-                      shape: const StadiumBorder(),
-                    ),
+                Expanded(
+                  child: _FieldTile(
+                    icon: LucideIcons.calendar,
+                    label: 'Tanggal',
+                    value: tanggalPendek(f.tanggal),
+                    onTap: () async {
+                      final d = await _pilihTanggal(context, f.tanggal);
+                      if (d != null) {
+                        filter.value = filter.value.copyWith(tanggal: d);
+                      }
+                    },
                   ),
+                ),
+                const SizedBox(width: Gap.x8),
+                Expanded(
+                  child: _FieldTile(
+                    icon: LucideIcons.clock,
+                    label: 'Jam',
+                    value: _labelJam(f.waktu),
+                    onTap: () => _showFilterSheet(context, filter),
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: Gap.x12),
+            FilledButton(onPressed: onCari, child: const Text('Cari tempat')),
+            const SizedBox(height: Gap.x12),
+            Text(
+              'Pencarian terakhir',
+              style: AppText.caption.copyWith(fontSize: 13),
+            ),
+            const SizedBox(height: Gap.x8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: Gap.x8),
+              child: Row(
+                children: [
+                  for (final (label, kriteria) in _terakhir)
+                    Padding(
+                      padding: const EdgeInsets.only(right: Gap.x8),
+                      child: ActionChip(
+                        onPressed: () {
+                          filter.value = kriteria;
+                          onCari();
+                        },
+                        avatar: const Icon(
+                          LucideIcons.repeat,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(label, style: AppText.label),
+                        backgroundColor: AppColors.surfaceMuted,
+                        side: BorderSide.none,
+                        shape: const StadiumBorder(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -322,7 +426,8 @@ class _QuickSearchCard extends StatelessWidget {
 // ───────────────────────── 08 · Cari & hasil ─────────────────────────
 
 class CariTab extends StatefulWidget {
-  const CariTab({super.key, this.onBack});
+  const CariTab({super.key, required this.filter, this.onBack});
+  final ValueNotifier<FilterPencarian> filter;
   final VoidCallback? onBack;
 
   @override
@@ -339,9 +444,9 @@ class _CariTabState extends State<CariTab> {
     super.dispose();
   }
 
-  List<Venue> get _hasil {
+  List<Venue> _hasil(FilterPencarian f) {
     final q = _q.text.trim().toLowerCase();
-    return semuaVenue.where((v) {
+    return f.saring(semuaVenue).where((v) {
       final cocokTeks =
           q.isEmpty ||
           v.nama.toLowerCase().contains(q) ||
@@ -356,9 +461,25 @@ class _CariTabState extends State<CariTab> {
     }).toList();
   }
 
+  void _hapusSemua() {
+    setState(() {
+      _q.clear();
+      _chip = 'Semua';
+    });
+    widget.filter.value = FilterPencarian.awal;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final hasil = _hasil;
+    return ValueListenableBuilder<FilterPencarian>(
+      valueListenable: widget.filter,
+      builder: (context, f, _) => _build(context, f),
+    );
+  }
+
+  Widget _build(BuildContext context, FilterPencarian f) {
+    final hasil = _hasil(f);
+    final tambahan = f.jumlahTambahan;
     return SafeArea(
       bottom: false,
       child: Column(
@@ -400,15 +521,23 @@ class _CariTabState extends State<CariTab> {
                   ),
                 ),
                 const SizedBox(width: Gap.x8),
-                IconButton.filled(
-                  tooltip: 'Filter',
-                  onPressed: () => _showFilterSheet(context),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size(52, 52),
-                    shape: RoundedRectangleBorder(borderRadius: Radii.mdAll),
+                Badge(
+                  isLabelVisible: tambahan > 0,
+                  label: Text('$tambahan'),
+                  backgroundColor: AppColors.accent,
+                  textColor: AppColors.text,
+                  child: IconButton.filled(
+                    tooltip: tambahan > 0
+                        ? 'Filter · $tambahan aktif'
+                        : 'Filter',
+                    onPressed: () => _showFilterSheet(context, widget.filter),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      minimumSize: const Size(52, 52),
+                      shape: RoundedRectangleBorder(borderRadius: Radii.mdAll),
+                    ),
+                    icon: const Icon(LucideIcons.slidersHorizontal, size: 20),
                   ),
-                  icon: const Icon(LucideIcons.slidersHorizontal, size: 20),
                 ),
               ],
             ),
@@ -418,12 +547,7 @@ class _CariTabState extends State<CariTab> {
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(
-                Gap.x16,
-                0,
-                Gap.x16,
-                Gap.x8,
-              ),
+              padding: const EdgeInsets.fromLTRB(Gap.x16, 0, Gap.x16, Gap.x8),
               children: [
                 for (final c in const [
                   'Semua',
@@ -442,16 +566,19 @@ class _CariTabState extends State<CariTab> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Gap.x16,
-              Gap.x12,
-              Gap.x16,
-              Gap.x8,
-            ),
-            child: Text(
-              '${hasil.length} tempat · 25 orang · ${tanggalPendek(tanggalAcara)} · 19.00–21.00',
-              style: AppText.caption.copyWith(fontSize: 13),
+          InkWell(
+            onTap: () => _showFilterSheet(context, widget.filter),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Gap.x16,
+                Gap.x12,
+                Gap.x16,
+                Gap.x8,
+              ),
+              child: Text(
+                '${hasil.length} tempat · ${f.orang} orang · ${tanggalPendek(f.tanggal)} · ${_labelJam(f.waktu)}',
+                style: AppText.caption.copyWith(fontSize: 13),
+              ),
             ),
           ),
           Expanded(
@@ -462,10 +589,7 @@ class _CariTabState extends State<CariTab> {
                       title: 'Belum ada tempat yang cocok',
                       message: 'Coba kurangi jumlah orang, geser jamnya, atau hapus beberapa filter.',
                       action: 'Hapus semua filter',
-                      onAction: () => setState(() {
-                        _q.clear();
-                        _chip = 'Semua';
-                      }),
+                      onAction: _hapusSemua,
                     ),
                   )
                 : ListView.separated(
@@ -495,30 +619,37 @@ class _CariTabState extends State<CariTab> {
 
 // ───────────────────────── 09 · Filter sheet ─────────────────────────
 
-void _showFilterSheet(BuildContext context) {
-  showModalBottomSheet<void>(
+/// Buka sheet Filter. Kriteria baru disimpan ke [filter] saat diterapkan.
+Future<void> _showFilterSheet(
+  BuildContext context,
+  ValueNotifier<FilterPencarian> filter,
+) async {
+  final hasil = await showModalBottomSheet<FilterPencarian>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => const _FilterSheet(),
+    builder: (_) => _FilterSheet(awal: filter.value),
   );
+  if (hasil != null) filter.value = hasil;
 }
 
 class _FilterSheet extends StatefulWidget {
-  const _FilterSheet();
+  const _FilterSheet({required this.awal});
+  final FilterPencarian awal;
 
   @override
   State<_FilterSheet> createState() => _FilterSheetState();
 }
 
 class _FilterSheetState extends State<_FilterSheet> {
-  int _orang = 25;
-  String _jam = 'Malam';
-  RangeValues _budget = const RangeValues(20000, 40000);
-  final _fasilitas = <Fasilitas>{Fasilitas.proyektor, Fasilitas.colokan};
+  late FilterPencarian _f = widget.awal;
+
+  void _ubah(FilterPencarian f) => setState(() => _f = f);
 
   @override
   Widget build(BuildContext context) {
+    final jumlah = _f.saring(semuaVenue).length;
+    final w = _f.waktu;
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.85,
       child: Column(
@@ -554,20 +685,22 @@ class _FilterSheetState extends State<_FilterSheet> {
                     children: [
                       Expanded(child: Text('Jumlah orang', style: AppText.h3)),
                       QtyStepper(
-                        value: _orang,
+                        value: _f.orang,
                         suffix: '',
-                        onChanged: (v) => setState(() => _orang = v),
+                        onChanged: (v) => _ubah(_f.copyWith(orang: v)),
                       ),
                     ],
                   ),
                   const SizedBox(height: Gap.x20),
                   Text('Tanggal', style: AppText.h3),
                   const SizedBox(height: Gap.x8),
-                  LabeledField(
-                    label: '',
-                    initialValue: tanggalPendek(tanggalAcara),
+                  _FieldTile(
                     icon: LucideIcons.calendar,
-                    readOnly: true,
+                    value: tanggalPendek(_f.tanggal),
+                    onTap: () async {
+                      final d = await _pilihTanggal(context, _f.tanggal);
+                      if (d != null && mounted) _ubah(_f.copyWith(tanggal: d));
+                    },
                   ),
                   const SizedBox(height: Gap.x20),
                   Text('Jam', style: AppText.h3),
@@ -576,18 +709,25 @@ class _FilterSheetState extends State<_FilterSheet> {
                     spacing: Gap.x8,
                     runSpacing: Gap.x8,
                     children: [
-                      for (final j in const [
-                        'Pagi',
-                        'Siang',
-                        'Sore · promo',
-                        'Malam',
-                      ])
+                      PillChip(
+                        label: 'Semua jam',
+                        selected: w == null,
+                        onTap: () => _ubah(_f.copyWith(hapusWaktu: true)),
+                      ),
+                      for (final j in WaktuRapat.values)
                         PillChip(
-                          label: j,
-                          selected: _jam == j,
-                          onTap: () => setState(() => _jam = j),
+                          label: j.label,
+                          selected: w == j,
+                          onTap: () => _ubah(_f.copyWith(waktu: j)),
                         ),
                     ],
+                  ),
+                  const SizedBox(height: Gap.x8),
+                  Text(
+                    w == null
+                        ? 'Tampilkan tempat yang buka di jam berapa pun.'
+                        : '${w.rentang} · tempat harus buka minimal ${FilterPencarian.minimalJam} jam di rentang ini.',
+                    style: AppText.caption,
                   ),
                   const SizedBox(height: Gap.x20),
                   Row(
@@ -596,19 +736,27 @@ class _FilterSheetState extends State<_FilterSheet> {
                         child: Text('Min. order per orang', style: AppText.h3),
                       ),
                       Text(
-                        '${rupiahShort(_budget.start.round())}–${rupiahShort(_budget.end.round())}',
+                        '${rupiahShort(_f.minOrderMin)}–${rupiahShort(_f.minOrderMaks)}',
                         style: AppText.bodyMedium.semi.tint(AppColors.primary),
                       ),
                     ],
                   ),
                   RangeSlider(
-                    values: _budget,
-                    min: 10000,
-                    max: 60000,
+                    values: RangeValues(
+                      _f.minOrderMin.toDouble(),
+                      _f.minOrderMaks.toDouble(),
+                    ),
+                    min: FilterPencarian.batasBawahOrder.toDouble(),
+                    max: FilterPencarian.batasAtasOrder.toDouble(),
                     divisions: 10,
                     activeColor: AppColors.primary,
                     inactiveColor: AppColors.primarySoft,
-                    onChanged: (v) => setState(() => _budget = v),
+                    onChanged: (v) => _ubah(
+                      _f.copyWith(
+                        minOrderMin: v.start.round(),
+                        minOrderMaks: v.end.round(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: Gap.x12),
                   Text('Fasilitas', style: AppText.h3),
@@ -617,15 +765,17 @@ class _FilterSheetState extends State<_FilterSheet> {
                     spacing: Gap.x8,
                     runSpacing: Gap.x8,
                     children: [
-                      for (final f in Fasilitas.values)
+                      for (final fas in Fasilitas.values)
                         PillChip(
-                          label: f.label,
-                          icon: FacilityChip.iconOf(f),
-                          selected: _fasilitas.contains(f),
-                          onTap: () => setState(
-                            () => _fasilitas.contains(f)
-                                ? _fasilitas.remove(f)
-                                : _fasilitas.add(f),
+                          label: fas.label,
+                          icon: FacilityChip.iconOf(fas),
+                          selected: _f.fasilitas.contains(fas),
+                          onTap: () => _ubah(
+                            _f.copyWith(
+                              fasilitas: _f.fasilitas.contains(fas)
+                                  ? (_f.fasilitas.toSet()..remove(fas))
+                                  : {..._f.fasilitas, fas},
+                            ),
                           ),
                         ),
                     ],
@@ -652,12 +802,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => setState(() {
-                          _orang = 25;
-                          _jam = 'Malam';
-                          _budget = const RangeValues(10000, 60000);
-                          _fasilitas.clear();
-                        }),
+                        onPressed: () => _ubah(FilterPencarian.awal),
                         child: const Text('Reset'),
                       ),
                     ),
@@ -665,8 +810,14 @@ class _FilterSheetState extends State<_FilterSheet> {
                     Expanded(
                       flex: 2,
                       child: FilledButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Tampilkan 4 tempat'),
+                        onPressed: jumlah == 0
+                            ? null
+                            : () => Navigator.pop(context, _f),
+                        child: Text(
+                          jumlah == 0
+                              ? 'Tidak ada yang cocok'
+                              : 'Tampilkan $jumlah tempat',
+                        ),
                       ),
                     ),
                   ],
