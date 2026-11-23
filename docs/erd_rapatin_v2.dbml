@@ -1,0 +1,287 @@
+// ======================================================
+// RAPATIN — ERD v2 (Supabase / PostgreSQL)
+// Paste di https://dbdiagram.io
+// ======================================================
+
+Enum user_role {
+  penyewa
+  mitra
+  admin
+}
+
+Enum verifikasi_status {
+  menunggu
+  terverifikasi
+  ditolak
+}
+
+Enum booking_status {
+  menunggu_konfirmasi
+  ditolak
+  menunggu_pembayaran
+  menunggu_verifikasi
+  lunas
+  kedaluwarsa
+  dibatalkan
+  selesai
+  tidak_datang
+}
+
+Enum pembayaran_status {
+  menunggu_verifikasi
+  valid
+  ditolak
+}
+
+Enum pembatal {
+  penyewa
+  mitra
+}
+
+Enum refund_status {
+  diproses
+  selesai
+}
+
+Enum pencairan_status {
+  ditahan
+  siap_dicairkan
+  dicairkan
+  batal
+}
+
+Enum notifikasi_kategori {
+  booking
+  pembayaran
+  dana
+}
+
+// ======================================
+// 1. AKUN
+// ======================================
+
+Table profiles {
+  id uuid [pk, note: 'Sama dengan auth.users.id (akun & password dikelola Supabase Auth)']
+  role user_role [not null]
+  nama varchar(150) [not null]
+  email varchar(255) [not null, unique]
+  no_hp varchar(20)
+  kampus varchar(150) [note: 'Hanya penyewa']
+  nama_bank varchar(100) [note: 'Hanya mitra, untuk pencairan']
+  no_rekening varchar(50) [note: 'Hanya mitra']
+  nama_pemilik_rekening varchar(150) [note: 'Hanya mitra']
+  created_at timestamptz [default: `now()`]
+}
+
+Table organisasi {
+  id uuid [pk]
+  id_penyewa uuid [not null, ref: > profiles.id]
+  nama varchar(150) [not null]
+  kampus varchar(150)
+  ukuran_grup integer
+  budget_per_orang integer [note: 'null = bebas']
+  created_at timestamptz [default: `now()`]
+}
+
+// ======================================
+// 2. TEMPAT
+// ======================================
+
+Table tempat {
+  id uuid [pk]
+  id_mitra uuid [not null, unique, ref: - profiles.id, note: 'MVP: 1 mitra = 1 tempat']
+  nama varchar(150) [not null]
+  alamat text [not null]
+  deskripsi text
+  kontak_wa varchar(20)
+  jam_buka time [not null]
+  jam_tutup time [not null]
+  fasilitas jsonb [note: 'contoh: ["wifi","proyektor","musala"]']
+  foto jsonb [note: 'array URL Supabase Storage, maks. 8']
+  status_verifikasi verifikasi_status [not null, default: 'menunggu']
+  catatan_verifikasi text [note: 'alasan jika admin menolak']
+  created_at timestamptz [default: `now()`]
+}
+
+Table ruang {
+  id uuid [pk]
+  id_tempat uuid [not null, ref: > tempat.id]
+  nama varchar(100) [not null]
+  kapasitas_min integer [not null]
+  kapasitas_max integer [not null]
+  harga_sewa_per_jam integer [not null, default: 0, note: '0 = gratis sewa']
+  min_order_per_orang integer [not null, default: 0, note: '0 = tanpa minimum order']
+  batas_durasi_jam integer [not null]
+  fasilitas jsonb
+  is_aktif boolean [not null, default: true]
+}
+
+Table menu {
+  id uuid [pk]
+  id_tempat uuid [not null, ref: > tempat.id]
+  nama varchar(150) [not null]
+  deskripsi text
+  harga integer [not null]
+  foto text
+}
+
+Table promo {
+  id uuid [pk]
+  id_tempat uuid [not null, ref: > tempat.id]
+  nama varchar(150) [not null]
+  jam_mulai time [not null]
+  jam_selesai time [not null]
+  hari_berlaku jsonb [not null, note: 'contoh: [1,2,3,4,5] = Sen–Jum']
+  persen_diskon integer [not null, note: '5 / 10 / 15 / 20']
+  min_rombongan integer [note: 'null = tanpa minimal']
+  is_aktif boolean [not null, default: true]
+}
+
+Table promo_ruang {
+  id_promo uuid [ref: > promo.id]
+  id_ruang uuid [ref: > ruang.id]
+
+  indexes {
+    (id_promo, id_ruang) [pk]
+  }
+}
+
+Table blokir_slot {
+  id uuid [pk]
+  id_ruang uuid [not null, ref: > ruang.id]
+  tanggal date [not null]
+  jam_mulai time [not null]
+  jam_selesai time [not null]
+  alasan varchar(100)
+  berulang_mingguan boolean [not null, default: false]
+}
+
+// ======================================
+// 3. BOOKING
+// ======================================
+
+Table booking {
+  id uuid [pk]
+  kode varchar(12) [not null, unique, note: 'contoh: RPT-0427']
+  id_penyewa uuid [not null, ref: > profiles.id]
+  id_organisasi uuid [not null, ref: > organisasi.id]
+  id_ruang uuid [not null, ref: > ruang.id]
+  id_promo uuid [ref: > promo.id]
+  nama_acara varchar(150) [not null]
+  catatan text
+  tanggal date [not null]
+  jam_mulai time [not null]
+  jam_selesai time [not null]
+  jumlah_orang integer [not null]
+  sewa_ruang integer [not null, note: 'harga_sewa_per_jam x durasi (dicatat saat checkout)']
+  total_min_order integer [not null, note: 'min_order_per_orang x jumlah_orang']
+  diskon integer [not null, default: 0]
+  biaya_layanan integer [not null, default: 3000]
+  kode_unik integer [not null, note: '3 digit, mengurangi total']
+  total_bayar integer [not null]
+  status booking_status [not null, default: 'menunggu_konfirmasi']
+  alasan_tolak text [note: 'diisi jika mitra menolak']
+  batas_bayar timestamptz [note: 'waktu diterima mitra + 24 jam']
+  batas_pembatalan timestamptz [note: 'min(waktu lunas + 48 jam, mulai acara - 24 jam)']
+  created_at timestamptz [default: `now()`]
+}
+
+// ======================================
+// 4. PEMBAYARAN, PEMBATALAN, PENCAIRAN
+// ======================================
+
+Table pembayaran {
+  id uuid [pk]
+  id_booking uuid [not null, ref: > booking.id, note: 'Bisa lebih dari 1 jika bukti ditolak lalu diunggah ulang']
+  bukti_url text [not null]
+  status pembayaran_status [not null, default: 'menunggu_verifikasi']
+  alasan_tolak text
+  id_admin uuid [ref: > profiles.id]
+  diunggah_at timestamptz [default: `now()`]
+  diverifikasi_at timestamptz
+}
+
+Table pembatalan {
+  id uuid [pk]
+  id_booking uuid [not null, unique, ref: - booking.id]
+  dibatalkan_oleh pembatal [not null]
+  alasan text
+  nominal_refund integer [not null]
+  status refund_status [not null, default: 'diproses']
+  bukti_transfer_url text
+  id_admin uuid [ref: > profiles.id]
+  diajukan_at timestamptz [default: `now()`]
+  selesai_at timestamptz
+}
+
+Table pencairan {
+  id uuid [pk]
+  id_booking uuid [not null, unique, ref: - booking.id]
+  id_mitra uuid [not null, ref: > profiles.id, note: 'disimpan agar query & RLS mitra lebih mudah']
+  nominal_kotor integer [not null, note: 'sewa_ruang + total_min_order - diskon']
+  fee_mitra integer [not null, default: 20000]
+  nominal_bersih integer [not null]
+  status pencairan_status [not null, default: 'ditahan']
+  siap_cair_at timestamptz [not null, note: '= booking.batas_pembatalan']
+  bukti_transfer_url text
+  id_admin uuid [ref: > profiles.id]
+  dicairkan_at timestamptz
+}
+
+// ======================================
+// 5. RATING & NOTIFIKASI
+// ======================================
+
+Table rating {
+  id uuid [pk]
+  id_booking uuid [not null, unique, ref: - booking.id]
+  nilai integer [not null, note: '1–5']
+  label jsonb [note: 'contoh: ["Ruang nyaman","Wi-Fi lancar"]']
+  komentar text
+  created_at timestamptz [default: `now()`]
+}
+
+Table notifikasi {
+  id uuid [pk]
+  id_user uuid [not null, ref: > profiles.id]
+  id_booking uuid [ref: > booking.id]
+  kategori notifikasi_kategori [not null]
+  judul varchar(150) [not null]
+  isi text
+  sudah_dibaca boolean [not null, default: false]
+  created_at timestamptz [default: `now()`]
+}
+
+// ======================================
+// PENGELOMPOKAN UNTUK TAMPILAN DIAGRAM
+// (hapus bagian [color: ...] jika error)
+// ======================================
+
+TableGroup Akun [color: #6F4E37] {
+  profiles
+  organisasi
+  notifikasi
+}
+
+TableGroup Tempat [color: #2E7D57] {
+  tempat
+  ruang
+  menu
+  promo
+  promo_ruang
+  blokir_slot
+}
+
+TableGroup Booking [color: #E8A33D] {
+  booking
+}
+
+TableGroup Uang [color: #C0392B] {
+  pembayaran
+  pembatalan
+  pencairan
+}
+
+TableGroup Feedback [color: #7A6A5D] {
+  rating
+}
